@@ -108,14 +108,34 @@ Le jeton d'accès est le mécanisme actuel et le plus simple : un seul fichier, 
 Un jeton d'accès ouvre le compte Kaggle. Trois règles.
 
 - **Il ne s'écrit jamais en clair dans un message, un ticket, une conversation ou un fichier du dépôt.** Un jeton qui a transité par un canal de ce type est compromis et doit être révoqué, même s'il n'a jamais servi.
-- **Il ne se tape pas dans une ligne de commande complète**, car il resterait dans l'historique du shell. Préférer une saisie masquée, dans un terminal interactif :
+- **Il ne se tape pas dans une ligne de commande complète**, car il resterait dans l'historique du shell, soit `ConsoleHost_history.txt` pour PowerShell.
+- **`chmod 600` n'a pas d'effet réel sous Windows.** Les permissions POSIX sont émulées par Git Bash sur NTFS et ne protègent rien. La protection repose sur les droits du compte utilisateur Windows.
+
+**Piège d'encodage, vérifié le 2026-09-07.** Sous Windows PowerShell 5.1, la redirection `>`, `Out-File` et `Set-Content -Encoding utf8` écrivent tous une marque d'ordre d'octets UTF-8 en tête de fichier. Le client Kaggle lit le fichier puis lui applique un `strip`, qui retire les espaces mais pas cette marque. Le jeton devient alors invalide, et le message d'erreur renvoyé ne mentionne pas l'encodage.
+
+Mesure : `Set-Content -Encoding ascii` produit 37 octets commençant par le jeton. `Out-File` en produit 40, précédés de `EF BB BF`, et la lecture côté client renvoie une valeur qui ne commence pas par `KGAT_`.
+
+**Commande de dépôt du jeton, sous PowerShell**, testée de bout en bout. La saisie est masquée, rien n'entre dans l'historique, et l'encodage est imposé.
+
+```powershell
+$dir = Join-Path $env:USERPROFILE ".kaggle"
+if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
+$sec = Read-Host -AsSecureString "Colle ton token Kaggle puis Entree"
+$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+$plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+Set-Content -Path (Join-Path $dir "access_token") -Value $plain -NoNewline -Encoding ascii
+Remove-Variable plain, sec, bstr
+```
+
+**Équivalent sous Git Bash**, où l'encodage ne pose pas de problème :
 
 ```bash
 mkdir -p ~/.kaggle
 read -rs TOKEN && printf '%s' "$TOKEN" > ~/.kaggle/access_token && unset TOKEN
 ```
 
-- **`chmod 600` n'a pas d'effet réel sous Windows.** Les permissions POSIX sont émulées par Git Bash sur NTFS et ne protègent rien. La protection repose sur les droits du compte utilisateur Windows.
+Les deux shells ne sont pas interchangeables. Windows PowerShell 5.1 ne connaît ni `&&` ni `||`, qui provoquent une erreur d'analyse.
 
 La révocation se fait sur `kaggle.com/settings/api`, en supprimant le jeton puis en en générant un autre.
 
