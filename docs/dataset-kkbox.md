@@ -37,9 +37,45 @@ Aucun décompresseur 7z n'est installé sur le poste, et Python n'en gère pas n
 
 Mesure de référence : `train_v2.csv.7z`, 33 Mo compressés vers 45,6 Mo, décompressé en 3,1 secondes.
 
-**Piège d'arborescence.** Les archives contiennent un chemin interne, `data/churn_comp_refresh/<fichier>.csv`. Une extraction vers `data/raw` produit donc `data/raw/data/churn_comp_refresh/train_v2.csv`, et non `data/raw/train_v2.csv`. Le script de téléchargement doit aplatir cette arborescence, ou le reste du pipeline doit résoudre les chemins par recherche récursive.
+**Piège d'arborescence, et il n'est pas uniforme.** Les archives des fichiers suffixés `_v2` portent un chemin interne `data/churn_comp_refresh/`, les autres non. Après extraction vers `data/raw`, on obtient donc :
 
-### 2.3 Ordre de récupération recommandé
+```text
+data/raw/members_v3.csv                              <- racine
+data/raw/transactions.csv                            <- racine
+data/raw/data/churn_comp_refresh/transactions_v2.csv <- sous-dossier
+data/raw/data/churn_comp_refresh/train_v2.csv        <- sous-dossier
+```
+
+Le script de téléchargement doit aplatir cette arborescence. Coder en dur `data/raw/<fichier>.csv` fonctionnerait pour la moitié des fichiers seulement.
+
+Temps de décompression mesurés : `members_v3` de 242 Mo vers 428 Mo en 22 secondes, `transactions` de 708 Mo vers 1 729 Mo en 70 secondes.
+
+### 2.3 Chiffres de référence mesurés le 7 septembre 2026
+
+Ces valeurs servent de contrôle : un écart important lors du chargement signale une erreur de lecture, et non une variation des données.
+
+| Table | Lignes | Comptes uniques | Période |
+| :--- | ---: | ---: | :--- |
+| `members_v3.csv` | 6 769 473 | 6 769 473 | inscriptions du 2004-03-26 au 2017-04-29 |
+| `transactions.csv` | 21 547 746 | 2 363 626 | 2015-01-01 au 2017-02-28 |
+| `transactions_v2.csv` | 1 431 009 | 1 197 050 | 2015-01-01 au 2017-03-31 |
+| `train_v2.csv` | 970 960 | 970 960 | étiquette de mars 2017, churn à 8,99 % |
+
+**L'union des deux fichiers de transactions couvre 27 mois**, de janvier 2015 à mars 2017. C'est la profondeur réelle disponible pour la grille d'observation. `transactions.csv` s'arrête au 28 février 2017 et `transactions_v2.csv` prend le relais : les deux sont complémentaires, avec un recouvrement de 361 187 lignes antérieures à mars 2017 qu'il faut dédupliquer.
+
+### Conséquence sur l'échantillonnage
+
+Le référentiel compte 6,77 millions de comptes, mais **seuls 2,36 millions apparaissent dans les transactions**. Tirer l'échantillon dans `members_v3.csv` produirait donc environ deux tiers de comptes sans aucune transaction, donc sans cible calculable et sans variable financière.
+
+**Règle** : l'échantillon se tire parmi les comptes présents dans les transactions, puis le référentiel est filtré sur cet échantillon. Jamais l'inverse.
+
+### La colonne `bd` est confirmée inutilisable
+
+Mesure sur les 6 769 473 lignes : valeurs allant de -7168 à 2016, et **4 546 765 valeurs hors de l'intervalle [10, 100], soit 67 % du fichier**. Elle est rejetée, avec une trace dans le journal.
+
+À noter également, `registered_via` contient la valeur `-1`, qui encode une modalité inconnue et doit être traitée comme telle plutôt que comme un code de canal.
+
+### 2.4 Ordre de récupération recommandé
 
 Le débit observé est d'environ 5 Mo par seconde.
 
@@ -49,7 +85,7 @@ Ce socle suffit à reconstruire la cible sur toute la période, à la valider co
 
 **Enrichissement, environ 7,8 Go et une demi-heure** : `user_logs_v2.csv.7z` puis `user_logs.csv.7z`. Ils apportent les variables `PRODUCT`, dont le taux de complétion qui porte le signal le plus intéressant du jeu. Ils ne conditionnent aucun critère d'acceptation antérieur au lot 3.
 
-**Échantillonnage obligatoire.** Un tirage aléatoire de comptes est effectué en premier, puis les fichiers sont filtrés sur cet échantillon. Les journaux d'écoute se lisent par morceaux, jamais en une fois. La taille d'échantillon par défaut est fixée dans `config.yaml`, à 50 000 comptes.
+**Échantillonnage obligatoire.** Un tirage aléatoire de comptes est effectué en premier, parmi les comptes présents dans les transactions comme expliqué en 2.3, puis les fichiers sont filtrés sur cet échantillon. Les journaux d'écoute se lisent par morceaux, jamais en une fois. La taille d'échantillon par défaut est fixée dans `config.yaml`, à 50 000 comptes.
 
 **Les données ne sont jamais versionnées.** Elles restent sous `data/raw/`, exclu par `.gitignore`. Les règles de la compétition encadrent leur usage et n'autorisent pas la redistribution.
 

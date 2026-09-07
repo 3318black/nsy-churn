@@ -73,11 +73,12 @@ Neuf lots, séquentiels par construction : chacun consomme la sortie du précéd
 **Critères d'acceptation**
 
 1. les journaux d'écoute sont lus par morceaux, jamais chargés en une fois
-2. les données brutes restent sous `data/raw/` et n'apparaissent dans aucun commit
-3. la colonne `bd` est explicitement rejetée, avec une trace dans le journal, et non ignorée en silence
-4. les dates d'expiration aberrantes, jusqu'à `20361015`, sont bornées ou écartées explicitement
-5. **la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence, et le taux de concordance est consigné dans un rapport.** C'est le critère le plus important du lot. Référence mesurée : 970 960 comptes, dont 87 330 en churn, soit 8,99 %
-6. le jeu projeté passe tous les contrôles de `validate.py` du lot 1, sans assouplissement
+2. l'échantillon est tiré parmi les comptes présents dans les transactions, et non dans le référentiel : sur 6,77 millions de comptes, seuls 2,36 millions ont une transaction
+3. les données brutes restent sous `data/raw/` et n'apparaissent dans aucun commit
+4. la colonne `bd` est explicitement rejetée, avec une trace dans le journal, et non ignorée en silence
+5. les dates d'expiration aberrantes, jusqu'à `20361015`, sont bornées ou écartées explicitement
+6. **la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence, et le taux de concordance est consigné dans un rapport.** C'est le critère le plus important du lot. Référence mesurée : 970 960 comptes, dont 87 330 en churn, soit 8,99 %
+7. le jeu projeté passe tous les contrôles de `validate.py` du lot 1, sans assouplissement
 
 ---
 
