@@ -8,15 +8,19 @@ Tu lis ce fichier avant toute action. Les décisions produit et architecture son
 
 ## 1. Ce que nous construisons
 
-Un moteur de prédiction de résiliation client. À une date donnée, il classe les comptes actifs par risque de résiliation dans les 60 jours, et livre pour chaque compte prioritaire les trois facteurs de risque qui expliquent son score.
+Un moteur de prédiction de résiliation client. À une date donnée, il classe les comptes actifs par risque de résiliation à l'horizon fixé, et livre pour chaque compte prioritaire les trois facteurs de risque qui expliquent son score. L'horizon vaut 60 jours par défaut et 30 jours sur la source KKBox, où il découle de la définition officielle du churn. C'est un paramètre de configuration, jamais une constante du code.
 
-L'utilisateur final est un commercial. Chaque lundi, il ouvre une liste de comptes à rappeler, triée par priorité, chaque ligne portant trois motifs lisibles du type `[SUPPORT] Hausse des tickets support`.
+L'utilisateur final est un commercial. Chaque lundi, il ouvre une liste de comptes à rappeler, triée par priorité, chaque ligne portant trois motifs lisibles du type `[PRODUCT] Chute de la fréquence d'usage`.
+
+**Finalité du projet** : il alimente un portfolio destiné à une recherche d'emploi sur un poste de Data Scientist, avec une échéance courte. Cela ne change rien aux exigences techniques, mais cela hiérarchise le travail. Ce qui distingue ce projet des centaines de projets de churn publics est son protocole : embargo temporel, sentinelle anti-fuite, Precision@K par période, lignes de base comparatives, cible reconstruite et vérifiée. Ces points passent avant tout le reste. Voir décision D16.
 
 Ce qui fait la valeur du produit n'est pas le score. C'est le fait que le commercial sache quoi dire quand il décroche son téléphone. Un score sans motif actionnable ne sert à rien, et un motif inventé est pire qu'un motif absent.
 
-**Dans le périmètre de la version 1** : contrat de données, générateur de données synthétiques, construction du jeu d'apprentissage sans fuite temporelle, protocole d'évaluation, modélisation, explicabilité locale, export de fichiers.
+**Dans le périmètre** : contrat de données, générateur synthétique pour les tests, adaptateur du jeu KKBox et reconstruction de la cible, construction du jeu d'apprentissage sans fuite temporelle, protocole d'évaluation, modélisation, explicabilité locale, export de fichiers, interface Streamlit en lecture seule, README.
 
-**Hors périmètre de la version 1** : toute synchronisation CRM, toute base de données, toute API HTTP, toute interface web, tout modèle de langage. Ne construis rien au-delà. Utile ne suffit pas, il faut que ce soit dans le périmètre.
+**Hors périmètre** : toute synchronisation CRM, toute base de données, toute API HTTP, tout modèle de langage. Ne construis rien au-delà. Utile ne suffit pas, il faut que ce soit dans le périmètre.
+
+L'interface Streamlit arrive au lot 7, après le pipeline. Ne la commence pas plus tôt, même si elle paraît plus gratifiante à construire.
 
 ---
 
@@ -55,10 +59,12 @@ Le raisonnement détaillé appartient au fichier de prompt. Le message de fin re
 
 Python 3.12 minimum, développement sous 3.14. Environnement et verrouillage par `uv`.
 
-`pandas`, `numpy`, `scikit-learn`, `xgboost`, `shap`, `pydantic`, `pyarrow`, `pyyaml`, `seaborn`, `matplotlib`, `pytest`, `ruff`, `mypy`.
+Production : `pandas`, `numpy`, `scikit-learn`, `xgboost`, `pydantic`, `pyarrow`, `pyyaml`, `seaborn`, `matplotlib`, `streamlit`. Développement seulement : `shap`, `pytest`, `ruff`, `mypy`, `kaggle`.
 
 **Ce qu'il ne faut pas utiliser :**
 
+- pas de `shap` dans le code de production. XGBoost calcule les mêmes contributions nativement par `booster.predict(dmatrix, pred_contribs=True)`, au bit près et plus vite. Vérifié par mesure, voir décision D12. La dernière colonne du tableau retourné est le biais, pas une variable
+- pas de `polars`. La question a été mesurée et tranchée en D13
 - pas de `simple-salesforce`, pas de client CRM, pas de `requests` vers un service tiers
 - pas de PostgreSQL, pas de SQLAlchemy, pas de base de données en version 1
 - pas de FastAPI, pas d'Uvicorn, pas de serveur HTTP. L'architecture est entièrement batch
@@ -71,12 +77,14 @@ Python 3.12 minimum, développement sous 3.14. Environnement et verrouillage par
 
 ## 5. Décisions déjà prises
 
-Elles sont dans `docs/decisions.md`, de D1 à D11. Les quatre qui cassent le plus souvent une implémentation :
+Elles sont dans `docs/decisions.md`, de D1 à D16. Les six qui cassent le plus souvent une implémentation :
 
-- **D4** : découpage temporel avec embargo d'au moins 60 jours. Jamais de `train_test_split` aléatoire sur ces données.
-- **D5** : `Precision@K` se calcule par semaine de scoring, puis se moyenne. Ce n'est pas un top K global.
+- **D4** : découpage temporel avec embargo au moins égal à l'horizon. Jamais de `train_test_split` aléatoire sur ces données.
+- **D5** : `Precision@K` se calcule par période de scoring, puis se moyenne. Ce n'est pas un top K global.
 - **D6** : la restitution montre un rang et un décile, jamais un pourcentage. Le score brut est une colonne technique.
-- **D7** : les contributions SHAP sont sommées par variable d'origine avant l'extraction du top 3.
+- **D7** : les contributions sont sommées par variable d'origine avant l'extraction du top 3.
+- **D13** : agrégation par `(client_id, event_ts)` obligatoire avant tout `merge_asof`, plus le contrôle par force brute.
+- **D16** : cinq points ne se sacrifient jamais pour tenir le calendrier. Ils y sont listés.
 
 Si une consigne de tâche contredit une de ces décisions, arrête-toi et signale la contradiction. Ne tranche pas seul.
 
@@ -84,7 +92,9 @@ Si une consigne de tâche contredit une de ces décisions, arrête-toi et signal
 
 ## 6. Modèle de données
 
-Défini dans `docs/data-contract.md`. Deux tables d'entrée, `accounts` et `events`, une grille d'apprentissage `(client_id, T0)`, un schéma de sortie.
+Défini dans `docs/data-contract.md`. Deux tables d'entrée, `accounts` et `events`, une grille d'apprentissage `(client_id, T0)`, un schéma de sortie. La projection du jeu KKBox sur ce contrat est décrite dans `docs/dataset-kkbox.md`.
+
+Le contrat ne se plie jamais à une source. C'est la source qui s'y conforme, par un adaptateur. Une source qui ne fournit pas une colonne optionnelle reste conforme ; une source qui ne fournit pas une colonne du noyau est refusée.
 
 Le point à ne jamais perdre de vue : **toute variable calculée pour un couple `(client_id, T0)` n'utilise que des événements strictement antérieurs à `T0`.** La sentinelle de `tests/test_no_leakage.py` vérifie cette propriété par reconstruction. Si tu la modifies pour la faire passer, tu as cassé le projet.
 
@@ -97,7 +107,9 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `data/schemas.py` | Contrats Pydantic des tables d'entrée | Ne transforme rien |
 | `data/validate.py` | Contrôle des invariants, échec bloquant | Ne corrige jamais une donnée fautive en silence |
 | `data/synthetic.py` | Génération d'événements horodatés | Ne génère aucune variable agrégée |
-| `data/loader.py` | Lecture depuis une source, derrière une interface | Ne calcule aucune variable |
+| `data/sources.py` | Lecture depuis une source, derrière une interface | Ne calcule aucune variable |
+| `data/kkbox.py` | Projection du jeu KKBox sur le contrat | N'assouplit jamais le contrat |
+| `data/target.py` | Reconstruction de la cible depuis les transactions | Ne construit aucune variable explicative |
 | `features/windows.py` | Agrégations sur fenêtres glissantes | N'accède pas à la cible |
 | `features/build.py` | Grille, cible, matrice de variables | Ne modélise pas |
 | `evaluation/splitting.py` | Découpage temporel avec embargo et purge | N'entraîne rien |
@@ -105,6 +117,7 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `models/train.py` | Entraînement et recherche d'hyperparamètres | Ne définit aucune métrique |
 | `models/explain.py` | TreeSHAP, agrégation, extraction du top 3 | N'écrit aucun fichier de sortie |
 | `pipeline/sinks.py` | Écriture vers une destination | Ne transforme aucune valeur |
+| `app/streamlit_app.py` | Affichage des exports en lecture seule | N'entraîne rien, ne score rien, ne recalcule rien |
 
 Deux règles transverses. Aucune valeur métier en dur dans le code : tout paramètre passe par `config/config.yaml`. Aucun module ne fabrique un chemin de fichier lui-même : les chemins viennent de la configuration.
 
@@ -158,3 +171,6 @@ Recensées à partir de la revue de la spec initiale, dans `docs/revue-spec-v3.m
 - présenter un score de modèle à arbres comme une probabilité
 - ajouter une dépendance parce qu'elle est pratique, sans passer par `docs/decisions.md`
 - traiter les chiffres obtenus sur données synthétiques comme une prévision de performance réelle
+- appeler `merge_asof` sans avoir agrégé au cumul maximal par `(client_id, event_ts)`. Sur le jeu de mesure, cette seule omission produisait 10,5 % de lignes fausses, sans aucune erreur levée
+- utiliser `sort_index()` pour restaurer l'ordre après un `merge_asof`. La fonction réindexe, il faut conserver une colonne d'index d'origine
+- mélanger `datetime64[us]` et `datetime64[ns]` sous pandas 3.0. La résolution se normalise à l'ingestion

@@ -97,11 +97,31 @@ Les variables se calculent sur des fenêtres glissantes se terminant à `T0` : 7
 
 Les variables de tendance comparent deux fenêtres adjacentes, par exemple les 30 derniers jours contre les 30 précédents. Ce sont ces variables qui portent le signal actionnable, puisqu'un niveau absolu décrit un client alors qu'une rupture décrit un risque.
 
-### 3.5 Sentinelle anti-fuite
+### 3.5 Pièges d'implémentation mesurés, à traiter obligatoirement
+
+Ces trois points ne sont pas théoriques. Ils ont été reproduits sur ce poste, sur un jeu de 2 millions d'événements et une grille de 600 000 couples. Chacun produit des variables fausses sans lever la moindre erreur.
+
+**Résolution temporelle sous pandas 3.0.** pandas gère désormais plusieurs résolutions d'horodatage. `pd.date_range` produit du `datetime64[us]`, alors qu'une construction par `pd.to_timedelta` peut produire du `datetime64[ns]`. Mélanger les deux fait échouer `merge_asof` avec `MergeError: incompatible merge keys`. C'est le cas favorable, puisque l'erreur est visible. La résolution doit être normalisée explicitement à l'ingestion, dans `validate.py`, et le contrôle doit être fait sur les deux tables.
+
+**Réindexation par `merge_asof`.** La fonction retourne un résultat réordonné. Un `sort_index()` ne restaure pas l'ordre d'origine, et les colonnes se retrouvent affectées aux mauvaises lignes. Il faut conserver explicitement une colonne d'index d'origine et trier dessus après la jointure.
+
+**Horodatages dupliqués.** Quand plusieurs événements partagent le même horodatage pour un même client, `merge_asof` ne garantit pas de retenir la dernière ligne du groupe, et le cumul récupéré est alors intermédiaire. Sur le jeu de test, cette seule cause produisait 63 319 lignes fausses sur 600 000, soit 10,5 %, silencieusement.
+
+**Correction obligatoire** : agréger au cumul maximal par `(client_id, event_ts)` avant toute jointure temporelle, et couvrir ce cas par un test dédié construit sur des horodatages volontairement dupliqués.
+
+### 3.6 Sentinelle anti-fuite
 
 Un test obligatoire, `tests/test_no_leakage.py`, procède ainsi : il construit les variables pour un couple `(client_id, T0)` donné, puis reconstruit les mêmes variables après avoir supprimé du journal tous les événements postérieurs ou égaux à `T0`. Les deux résultats doivent être strictement identiques.
 
 Si une seule variable diffère, elle regarde dans le futur. Le test échoue et la construction est fausse.
+
+### 3.7 Contrôle par force brute
+
+Second test obligatoire, complémentaire du précédent et de nature différente. La sentinelle vérifie qu'on ne regarde pas le futur ; ce contrôle vérifie que le calcul est juste.
+
+Sur un échantillon aléatoire d'au moins 200 couples `(client_id, T0)`, chaque variable de fenêtre est recalculée par filtrage naïf, en parcourant les événements du client et en comptant ceux qui tombent dans l'intervalle. Le résultat doit correspondre exactement à celui de l'implémentation vectorisée.
+
+Ce contrôle est le seul qui aurait détecté les 10,5 % de lignes fausses décrites en section 3.5. Aucune assertion sur des totaux, des moyennes ou des formes de tableau ne les repère. Il reste exigé quelle que soit la bibliothèque utilisée.
 
 ## 4. Schéma de sortie
 
