@@ -87,12 +87,39 @@ Dépendance externe sur le chemin critique. Aucun élément n'était présent su
 
 1. **Créer un compte** sur `kaggle.com`, si ce n'est pas déjà fait.
 2. **Accepter les règles de la compétition.** Ouvrir `kaggle.com/c/kkbox-churn-prediction-challenge/rules` et cliquer sur le bouton d'acceptation. Sans cette étape, l'API renvoie une erreur d'autorisation même avec un jeton valide. C'est la cause d'échec la plus fréquente.
-3. **Créer un jeton d'API.** Dans les réglages du compte, section API, demander un nouveau jeton. Un fichier `kaggle.json` est téléchargé.
-4. **Déposer le jeton** dans le dossier `.kaggle` du répertoire personnel, soit `C:/Users/<utilisateur>/.kaggle/kaggle.json` sous Windows. Le dossier est à créer s'il n'existe pas.
+3. **Créer un jeton**, sur `kaggle.com/settings/api`. Deux mécanismes coexistent, décrits ci-dessous.
+4. **Déposer le jeton** dans le dossier `.kaggle` du répertoire personnel, soit `C:/Users/<utilisateur>/.kaggle/` sous Windows. Le dossier est à créer s'il n'existe pas.
 
-Le fichier contient un nom d'utilisateur et une clé. C'est un secret : il ne doit jamais entrer dans le dépôt.
+### 7.2 Les deux mécanismes d'authentification
 
-### 7.2 Vérification
+Le client `kaggle 2.2.4` accepte les deux, dans cet ordre de priorité, vérifié dans `kagglesdk/kaggle_env.py` :
+
+1. la variable d'environnement `KAGGLE_API_TOKEN`, qui peut contenir soit le jeton lui-même, soit un chemin de fichier
+2. le fichier `~/.kaggle/access_token`, jeton d'accès de la forme `KGAT_...`
+3. le fichier `~/.kaggle/access_token.txt`, variante prévue pour les éditeurs Windows qui ajoutent l'extension
+4. le fichier `~/.kaggle/kaggle.json`, mécanisme historique associant un nom d'utilisateur et une clé
+
+Le contenu du fichier est nettoyé par un `strip`, donc un retour à la ligne final ne pose pas de problème.
+
+Le jeton d'accès est le mécanisme actuel et le plus simple : un seul fichier, une seule ligne. Le format `kaggle.json` reste accepté.
+
+### 7.3 Manipulation du secret
+
+Un jeton d'accès ouvre le compte Kaggle. Trois règles.
+
+- **Il ne s'écrit jamais en clair dans un message, un ticket, une conversation ou un fichier du dépôt.** Un jeton qui a transité par un canal de ce type est compromis et doit être révoqué, même s'il n'a jamais servi.
+- **Il ne se tape pas dans une ligne de commande complète**, car il resterait dans l'historique du shell. Préférer une saisie masquée, dans un terminal interactif :
+
+```bash
+mkdir -p ~/.kaggle
+read -rs TOKEN && printf '%s' "$TOKEN" > ~/.kaggle/access_token && unset TOKEN
+```
+
+- **`chmod 600` n'a pas d'effet réel sous Windows.** Les permissions POSIX sont émulées par Git Bash sur NTFS et ne protègent rien. La protection repose sur les droits du compte utilisateur Windows.
+
+La révocation se fait sur `kaggle.com/settings/api`, en supprimant le jeton puis en en générant un autre.
+
+### 7.4 Vérification
 
 ```bash
 uv run kaggle competitions files -c kkbox-churn-prediction-challenge
@@ -100,7 +127,7 @@ uv run kaggle competitions files -c kkbox-churn-prediction-challenge
 
 La commande doit lister les fichiers avec leur taille. Un échec pour cause d'autorisation signifie que l'étape 2 n'a pas été faite.
 
-### 7.3 Téléchargement
+### 7.5 Téléchargement
 
 Les fichiers se récupèrent séparément, jamais en une seule commande, afin de ne pas rapatrier l'intégralité du jeu d'un coup.
 
@@ -116,6 +143,6 @@ Le format d'archive livré par l'API est à confirmer au premier téléchargemen
 
 **Ordre recommandé** : commencer par les trois premiers fichiers, qui sont légers. Ils suffisent à construire la table `accounts`, à reconstruire la cible et à valider cette reconstruction contre l'étiquette officielle, ce qui est le critère central du lot 2. Le fichier `user_logs_v2.csv`, d'environ 30 Go, n'est nécessaire qu'aux variables d'usage produit et peut se télécharger pendant que le reste avance.
 
-### 7.4 Si l'accès tarde
+### 7.6 Si l'accès tarde
 
 Les lots 0 et 1 se construisent sur le générateur synthétique, dont c'est précisément le rôle. Le chemin critique n'est donc pas bloqué immédiatement, mais le lot 2 et toute la démonstration finale le sont.

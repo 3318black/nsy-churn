@@ -20,9 +20,14 @@ reports/
 *.joblib
 *.ubj
 
-# Secrets
+# Secrets. Ces fichiers vivent normalement hors du depot, dans ~/.kaggle,
+# mais une copie egaree dans le projet ne doit jamais partir en commit.
 .env
 *.pem
+kaggle.json
+access_token
+access_token.txt
+*.token
 
 # Outils
 .ipynb_checkpoints/
