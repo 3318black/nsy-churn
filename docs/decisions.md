@@ -223,6 +223,10 @@ Une interface web est ajoutée au périmètre. Technologie retenue : Streamlit. 
 
 **Ce que l'interface ne doit pas être** : un tableau de bord générique de métriques, ni une page de démonstration où l'on saisit des valeurs pour obtenir un score. Ces deux formes sont les plus répandues et ne démontrent rien.
 
+**Porte laissée ouverte vers un front dédié.** L'auteur pratique React et Next.js couramment. Un front dédié n'est donc pas écarté pour des raisons de compétence, mais de calendrier et de positionnement : sur une candidature en Data Scientist, le temps pris sur le pipeline coûterait plus qu'il ne rapporterait.
+
+Cette option reste peu coûteuse à activer plus tard parce que l'architecture est entièrement batch. Un front lirait un export statique, sans backend, sans contrat d'API ni authentification. Pour que cela reste vrai, `sinks.py` doit exposer une destination JSON aux côtés de Parquet et CSV, dès le lot 6. C'est une implémentation de plus derrière l'interface de destination, soit quelques lignes, et elle évite d'avoir à revenir sur le pipeline le jour où le front arrive.
+
 ---
 
 ## D16. Arbitrages liés à l'échéance de deux semaines

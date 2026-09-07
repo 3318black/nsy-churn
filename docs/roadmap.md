@@ -152,7 +152,7 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 **Livrables**
 
 - `src/churn/pipeline/run_scoring.py`, point d'entrée en ligne de commande
-- `src/churn/pipeline/sinks.py`, interface de destination, implémentations Parquet et CSV
+- `src/churn/pipeline/sinks.py`, interface de destination, implémentations Parquet, CSV et JSON. La destination JSON prépare un front dédié éventuel sans jamais toucher au pipeline, voir décision D15
 - `src/churn/pipeline/schemas.py`, schéma Pydantic de la ligne d'export
 
 **Critères d'acceptation**
