@@ -1,0 +1,76 @@
+# Correspondance entre variable technique et libelle metier.
+# Dictionnaire statique, deterministe et testable. Aucun modele de langage
+# n'intervient dans cette traduction. Voir AGENTS.md section 4.
+#
+# La cle est le nom de la variable d'origine, avant encodage. L'agregation des
+# contributions SHAP se fait a ce niveau. Voir decision D7.
+#
+# `label` est affiche tel quel au commercial, prefixe par `source`.
+# Exemple de rendu : "[SUPPORT] Hausse des tickets support".
+# `action` indique le levier a actionner pendant l'appel. C'est ce qui distingue
+# un facteur actionnable d'une simple constatation.
+
+nb_tickets_support_30j:
+  label: "Hausse des tickets support"
+  source: "SUPPORT"
+  action: "Verifier les incidents ouverts avant l'appel"
+
+delai_resolution_moyen_30j:
+  label: "Allongement du delai de resolution support"
+  source: "SUPPORT"
+  action: "Proposer une prise en charge prioritaire"
+
+tendance_tickets_30j_vs_30j:
+  label: "Deterioration recente de la relation support"
+  source: "SUPPORT"
+  action: "Reprendre l'historique des trois derniers tickets"
+
+nb_connexions_30j:
+  label: "Faible frequence de connexion"
+  source: "PRODUCT"
+  action: "Identifier les utilisateurs devenus inactifs"
+
+tendance_connexions_30j_vs_30j:
+  label: "Chute de la frequence de connexion"
+  source: "PRODUCT"
+  action: "Proposer une session de reprise en main"
+
+duree_usage_module_cle_30j:
+  label: "Baisse d'usage d'une fonctionnalite cle"
+  source: "PRODUCT"
+  action: "Verifier si un besoin metier a change"
+
+nb_desactivations_module_90j:
+  label: "Desactivation d'une fonctionnalite"
+  source: "PRODUCT"
+  action: "Comprendre le motif de la desactivation"
+
+taux_utilisation_licences:
+  label: "Licences souscrites sous-utilisees"
+  source: "PRODUCT"
+  action: "Anticiper une demande de reduction de perimetre"
+
+retard_paiement_moyen_90j:
+  label: "Retards de paiement recurrents"
+  source: "FINANCE"
+  action: "Verifier la situation de facturation avant l'appel"
+
+nb_echecs_prelevement_90j:
+  label: "Echecs de prelevement bancaire"
+  source: "FINANCE"
+  action: "Faire verifier les coordonnees bancaires"
+
+jours_depuis_dernier_contact:
+  label: "Absence de contact commercial prolongee"
+  source: "COMMERCIAL"
+  action: "Reprendre contact sans attendre"
+
+anciennete_jours:
+  label: "Anciennete du compte"
+  source: "GENERAL"
+  action: ""
+
+type_contrat:
+  label: "Type de contrat"
+  source: "GENERAL"
+  action: ""
