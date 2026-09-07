@@ -3,12 +3,91 @@
 # n'intervient dans cette traduction. Voir AGENTS.md section 4.
 #
 # La cle est le nom de la variable d'origine, avant encodage. L'agregation des
-# contributions SHAP se fait a ce niveau. Voir decision D7.
+# contributions se fait a ce niveau. Voir decision D7.
 #
-# `label` est affiche tel quel au commercial, prefixe par `source`.
-# Exemple de rendu : "[SUPPORT] Hausse des tickets support".
-# `action` indique le levier a actionner pendant l'appel. C'est ce qui distingue
-# un facteur actionnable d'une simple constatation.
+# `label` est affiche tel quel, prefixe par `source`, ce qui donne par exemple
+# "[PRODUCT] Chute de la frequence d'usage".
+# `action` indique le levier a actionner. C'est ce qui distingue un facteur
+# actionnable d'une simple constatation. Il reste vide pour les variables
+# structurelles, sur lesquelles aucune action n'est possible.
+#
+# Toutes les variables ne sont pas disponibles sur toutes les sources. Une
+# variable absente du jeu courant est simplement inutilisee, sans erreur.
+# Le jeu KKBox ne comporte ni support ni contact commercial.
+
+# --- PRODUCT, disponible sur KKBox et sur le jeu synthetique ---
+
+nb_connexions_30j:
+  label: "Faible frequence d'usage"
+  source: "PRODUCT"
+  action: "Identifier les utilisateurs devenus inactifs"
+
+tendance_connexions_30j_vs_30j:
+  label: "Chute de la frequence d'usage"
+  source: "PRODUCT"
+  action: "Proposer une reprise en main"
+
+duree_usage_30j:
+  label: "Baisse du temps d'usage"
+  source: "PRODUCT"
+  action: "Verifier si un besoin a change"
+
+tendance_duree_usage_30j_vs_30j:
+  label: "Recul marque du temps d'usage"
+  source: "PRODUCT"
+  action: "Reprendre contact avant la fin de periode"
+
+taux_completion_30j:
+  label: "Faible taux d'engagement sur les contenus"
+  source: "PRODUCT"
+  action: "Verifier la pertinence de l'offre pour cet usage"
+
+tendance_taux_completion_30j_vs_30j:
+  label: "Desengagement progressif sur les contenus"
+  source: "PRODUCT"
+  action: "Proposer une decouverte guidee"
+  # Variable la plus interessante du jeu KKBox : un utilisateur peut conserver
+  # son temps d'ecoute tout en abandonnant de plus en plus de morceaux avant
+  # la fin. Le niveau absolu ne le montre pas, la tendance si.
+
+diversite_contenus_30j:
+  label: "Reduction de la diversite d'usage"
+  source: "PRODUCT"
+  action: "Identifier les fonctionnalites delaissees"
+
+# --- FINANCE, disponible sur KKBox et sur le jeu synthetique ---
+
+nb_echecs_prelevement_90j:
+  label: "Echecs de prelevement"
+  source: "FINANCE"
+  action: "Faire verifier les coordonnees bancaires"
+
+ecart_montant_paye_90j:
+  label: "Ecart entre montant facture et montant paye"
+  source: "FINANCE"
+  action: "Verifier la situation de facturation"
+
+desactivation_renouvellement_auto:
+  label: "Renouvellement automatique desactive"
+  source: "FINANCE"
+  action: "Rappeler avant la date d'expiration, signal le plus direct"
+
+nb_annulations_180j:
+  label: "Annulations d'abonnement anterieures"
+  source: "FINANCE"
+  action: "Reprendre l'historique des annulations"
+
+jours_avant_expiration:
+  label: "Expiration d'abonnement proche"
+  source: "FINANCE"
+  action: "Positionner le contact avant l'echeance"
+
+retard_paiement_moyen_90j:
+  label: "Retards de paiement recurrents"
+  source: "FINANCE"
+  action: "Verifier la situation de facturation avant l'appel"
+
+# --- SUPPORT, jeu synthetique seulement ---
 
 nb_tickets_support_30j:
   label: "Hausse des tickets support"
@@ -25,45 +104,14 @@ tendance_tickets_30j_vs_30j:
   source: "SUPPORT"
   action: "Reprendre l'historique des trois derniers tickets"
 
-nb_connexions_30j:
-  label: "Faible frequence de connexion"
-  source: "PRODUCT"
-  action: "Identifier les utilisateurs devenus inactifs"
-
-tendance_connexions_30j_vs_30j:
-  label: "Chute de la frequence de connexion"
-  source: "PRODUCT"
-  action: "Proposer une session de reprise en main"
-
-duree_usage_module_cle_30j:
-  label: "Baisse d'usage d'une fonctionnalite cle"
-  source: "PRODUCT"
-  action: "Verifier si un besoin metier a change"
-
-nb_desactivations_module_90j:
-  label: "Desactivation d'une fonctionnalite"
-  source: "PRODUCT"
-  action: "Comprendre le motif de la desactivation"
-
-taux_utilisation_licences:
-  label: "Licences souscrites sous-utilisees"
-  source: "PRODUCT"
-  action: "Anticiper une demande de reduction de perimetre"
-
-retard_paiement_moyen_90j:
-  label: "Retards de paiement recurrents"
-  source: "FINANCE"
-  action: "Verifier la situation de facturation avant l'appel"
-
-nb_echecs_prelevement_90j:
-  label: "Echecs de prelevement bancaire"
-  source: "FINANCE"
-  action: "Faire verifier les coordonnees bancaires"
+# --- COMMERCIAL, jeu synthetique seulement ---
 
 jours_depuis_dernier_contact:
   label: "Absence de contact commercial prolongee"
   source: "COMMERCIAL"
   action: "Reprendre contact sans attendre"
+
+# --- GENERAL, variables structurelles sans levier d'action ---
 
 anciennete_jours:
   label: "Anciennete du compte"
@@ -72,5 +120,20 @@ anciennete_jours:
 
 type_contrat:
   label: "Type de contrat"
+  source: "GENERAL"
+  action: ""
+
+canal_acquisition:
+  label: "Canal d'acquisition"
+  source: "GENERAL"
+  action: ""
+
+segment:
+  label: "Segment de compte"
+  source: "GENERAL"
+  action: ""
+
+mrr:
+  label: "Revenu mensuel recurrent"
   source: "GENERAL"
   action: ""

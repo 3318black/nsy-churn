@@ -8,7 +8,7 @@ Statut possible : `Actée`, `Ouverte`, `Bloquée`, `Révisée`.
 
 ## D1. Le projet démarre sur données synthétiques, avec un contrat de données figé d'abord
 
-**Statut** : Actée le 2026-09-07.
+**Statut** : Révisée le 2026-09-07 par D14. Le principe du contrat écrit en premier reste intégralement valable ; c'est le rôle du jeu synthétique qui change.
 
 Aucune donnée réelle n'est disponible, alors que la cible est une mise en production. La séquence retenue est la suivante : écrire le contrat de données d'entrée, puis un générateur de données synthétiques qui respecte ce contrat, puis le pipeline complet sur ces données.
 
@@ -42,7 +42,7 @@ Le générateur écrit deux tables brutes : un référentiel de comptes et un jo
 
 **Statut** : Actée le 2026-09-07.
 
-Le découpage entraînement et test est strictement chronologique, avec un embargo d'au moins 60 jours entre les deux, égal à l'horizon de prédiction. Toute observation d'entraînement dont la fenêtre de cible franchit la frontière de test est purgée.
+Le découpage entraînement et test est strictement chronologique, avec un embargo au moins égal à l'horizon de prédiction. Cet horizon vaut 60 jours par défaut et 30 jours sur la source KKBox, où il découle de la définition officielle du churn. Le rapport entre les deux est vérifié au démarrage, la valeur absolue ne l'est pas. Toute observation d'entraînement dont la fenêtre de cible franchit la frontière de test est purgée.
 
 **Motif** : détaillé en section 3.1 de `revue-spec-v3.md`. Sans embargo, la cible d'entraînement se résout dans la période de test et la validation devient mensongère.
 
@@ -54,11 +54,13 @@ Le découpage entraînement et test est strictement chronologique, avec un embar
 
 **Statut** : Actée le 2026-09-07.
 
-`Precision@K` se calcule par semaine de scoring, puis se moyenne sur les semaines de la période d'évaluation. K représente la capacité de traitement hebdomadaire de l'équipe commerciale et vaut 50 par défaut, valeur à confirmer avec le métier.
+`Precision@K` se calcule par semaine de scoring, puis se moyenne sur les semaines de la période d'évaluation. K représente la capacité de traitement hebdomadaire d'une équipe commerciale et vaut 50 par défaut.
+
+Sur la source KKBox, aucune équipe commerciale n'existe. K y représente alors une capacité de traitement hypothétique, ce qui doit être écrit explicitement dans le rapport et le README. La métrique garde tout son sens comme mesure de qualité de tête de liste.
 
 **Motif** : détaillé en section 3.2 de `revue-spec-v3.md`.
 
-**Métriques secondaires obligatoires** : le rappel au rang K sur la même base, pour mesurer la part de churn effectivement capturée, et le lift par rapport au tri par MRR décroissant. Le ROC-AUC est calculé pour information mais ne pilote aucune décision, car il est peu sensible sur une classe rare.
+**Métriques secondaires obligatoires** : le rappel au rang K sur la même base, pour mesurer la part de churn effectivement capturée, et le lift par rapport au tri par revenu décroissant. Le ROC-AUC est calculé pour information mais ne pilote aucune décision, car il est peu sensible sur une classe rare.
 
 ---
 
@@ -93,6 +95,8 @@ La sortie du pipeline est un fichier Parquet, source de vérité technique, doub
 **Motif** : décision produit prise le 2026-09-07. L'encodage `utf-8-sig` est retenu parce qu'Excel sous Windows interprète mal un UTF-8 sans marque d'ordre d'octets et casse les accents.
 
 **Frontière de sortie** : le pipeline écrit ses résultats via une interface de destination unique. Ajouter une destination CRM ou une base consistera à implémenter cette interface, sans toucher au reste.
+
+**Révision** : l'exclusion de toute interface web est levée par la décision D15. L'export de fichiers reste la sortie du pipeline, l'interface se contentant de lire ces fichiers.
 
 ---
 
@@ -166,7 +170,7 @@ LightGBM est écarté pour une raison de robustesse et non de performance : `sha
 
 pandas reste la bibliothèque de manipulation de données. polars n'est pas introduit.
 
-**Mesure**, sur le cas d'usage réel du lot 2, soit 2 millions d'événements et une grille de 600 000 couples `(client_id, T0)` : `polars.join_asof` s'exécute en 0,46 s contre 2,06 s pour `pandas.merge_asof`, soit un facteur 4,5. À ce volume, l'écart absolu est de 1,6 seconde dans un traitement nocturne. Il ne justifie pas une dépendance supplémentaire ni la coexistence de deux API dans le même dépôt, alors que le reste de la chaîne, scikit-learn, XGBoost et Seaborn, parle pandas.
+**Mesure**, sur le cas d'usage réel du lot 3, soit 2 millions d'événements et une grille de 600 000 couples `(client_id, T0)` : `polars.join_asof` s'exécute en 0,46 s contre 2,06 s pour `pandas.merge_asof`, soit un facteur 4,5. À ce volume, l'écart absolu est de 1,6 seconde dans un traitement nocturne. Il ne justifie pas une dépendance supplémentaire ni la coexistence de deux API dans le même dépôt, alors que le reste de la chaîne, scikit-learn, XGBoost et Seaborn, parle pandas.
 
 **Ce que la mesure a réellement révélé est plus important que la vitesse.** La première implémentation pandas produisait 63 319 lignes fausses sur 600 000, soit 10,5 %, sans lever la moindre erreur. Deux causes, toutes deux propres à `merge_asof` :
 
@@ -175,10 +179,75 @@ pandas reste la bibliothèque de manipulation de données. polars n'est pas intr
 
 La correction consiste à conserver explicitement l'index d'origine, et à agréger au cumul maximal par `(client_id, event_ts)` avant la jointure. Après correction, pandas et polars donnent des résultats strictement identiques, tous deux vérifiés à zéro erreur contre un calcul de référence par force brute.
 
-**Deux garde-fous deviennent donc obligatoires dans le lot 2 :**
+**Deux garde-fous deviennent donc obligatoires dans le lot 3 :**
 
 - agrégation par `(client_id, event_ts)` avant tout `merge_asof`, avec un test dédié sur des horodatages dupliqués
 - contrôle par force brute sur un échantillon aléatoire d'au moins 200 couples, comparant le résultat vectorisé à un filtrage naïf. Ce contrôle est indépendant de la bibliothèque et resterait exigé avec polars.
+
+---
+
+## D14. Deux sources de données, deux rôles distincts
+
+**Statut** : Actée le 2026-09-07. Révise partiellement D1.
+
+Le jeu KKBox porte la démonstration et toutes les mesures de performance. Le générateur synthétique reste, mais son rôle se réduit aux tests automatisés : rapide, reproductible, versionnable sous forme de graine, et couvrant les cas limites qu'un jeu réel ne contient pas.
+
+**Motif** : la finalité du projet a changé le 2026-09-07. Il alimente un portfolio destiné à une recherche d'emploi sur un poste de Data Scientist. Or un portfolio qui annonce des données synthétiques produites par son propre auteur ne permet à personne de distinguer un bon modèle d'un générateur complaisant. La crédibilité de tout le reste en dépend.
+
+Le détail de la projection figure dans `dataset-kkbox.md`. Deux conséquences de configuration : l'horizon passe à 30 jours pour cette source, conformément à la définition officielle du churn, et l'embargo suit.
+
+**Ce qui ne change pas** : D2 reste intégralement valable. Tout rapport produit sur données synthétiques porte la mention correspondante. Pouvoir expliquer pourquoi le projet utilise deux sources et ce que chacune valide est un argument, pas une faiblesse.
+
+**Dépendance bloquante** : compte Kaggle, acceptation des règles de la compétition, et jeton d'API. Absents du poste au 2026-09-07.
+
+---
+
+## D15. Interface Streamlit, construite après le lot 6
+
+**Statut** : Actée le 2026-09-07. Révise D8, qui excluait toute interface.
+
+Une interface web est ajoutée au périmètre. Technologie retenue : Streamlit. Elle est construite après le lot 6, jamais avant.
+
+**Motif de l'ajout** : sur un portfolio, ce qui n'est pas visible n'existe pas. Un recruteur consacre quelques minutes à un dépôt et ne lira pas `features/windows.py` pour apprécier la rigueur du pipeline. L'interface est la porte d'entrée qui donne envie de lire le reste.
+
+**Motif du choix de Streamlit** : Python pur, donc aucune compétence ni chaîne de construction supplémentaire, et un déploiement public gratuit qui fournit un lien cliquable depuis un CV. Une application FastAPI et React coûterait plusieurs fois plus pour un signal équivalent sur un poste de Data Scientist, où le jury évalue la méthode et non la chaîne de livraison.
+
+**Motif de l'ordre** : une interface construite avant le pipeline façonne le pipeline pour l'affichage. Elle fait aussi courir le risque de ne jamais terminer la partie qui différencie réellement le candidat.
+
+**Ce que l'interface doit montrer**, par ordre de priorité :
+
+1. la liste priorisée de la semaine, triable, avec le rang, le décile et les trois facteurs de risque
+2. la fiche d'un compte, avec la chronologie de ses événements et la contribution de chaque facteur
+3. la courbe de Precision@K du modèle face aux trois lignes de base, qui est l'argument technique central
+4. la mention explicite de la source de données affichée, KKBox ou synthétique
+
+**Ce que l'interface ne doit pas être** : un tableau de bord générique de métriques, ni une page de démonstration où l'on saisit des valeurs pour obtenir un score. Ces deux formes sont les plus répandues et ne démontrent rien.
+
+---
+
+## D16. Arbitrages liés à l'échéance de deux semaines
+
+**Statut** : Actée le 2026-09-07.
+
+L'échéance annoncée est inférieure à deux semaines. Les allègements suivants sont actés, et il vaut mieux les décider maintenant que les subir plus tard.
+
+**Ce qui est allégé :**
+
+- `mypy` passe du mode strict au mode standard. Le typage strict d'un code de manipulation de données coûte cher en temps pour un gain faible sur ce périmètre. La contrainte reste dans `pyproject.toml`, en commentaire, pour être remise après l'échéance.
+- La recherche d'hyperparamètres se limite à une grille réduite et documentée. Un gain de performance marginal ne se voit pas dans un portfolio, contrairement à un protocole d'évaluation correct.
+- Le lot 9, l'industrialisation, reste hors périmètre.
+
+**Ce qui n'est pas négociable, quelle que soit la pression du calendrier :**
+
+- l'embargo et la sentinelle anti-fuite, décision D4
+- le contrôle par force brute, décision D13
+- les trois lignes de base avant tout modèle, décision D5
+- le contrôle de concordance de la cible reconstruite contre l'étiquette officielle, section 5 de `dataset-kkbox.md`
+- le README
+
+Ces cinq points sont exactement ce qui distingue ce projet des centaines de projets de churn publics. Les sacrifier pour gagner deux jours reviendrait à livrer un projet de plus, indistinguable des autres.
+
+**Le README est un livrable de première classe.** C'est le premier et souvent le seul document lu. Il doit exposer le problème, la définition de la cible, le protocole de validation, les résultats face aux lignes de base, et les limites assumées. Il est écrit en dernier, mais il est prévu dès maintenant.
 
 ---
 
@@ -189,6 +258,6 @@ La correction consiste à conserver explicitement l'index d'origine, et à agré
 | O1 | Définition métier exacte du churn : résiliation contractuelle ferme, ou seuil d'inactivité ? | Métier | Le générateur et la construction de la cible |
 | O2 | Capacité hebdomadaire réelle de l'équipe commerciale, qui fixe K | Métier | Le calibrage de la métrique, pas le code |
 | O3 | Horizon de 60 jours : confirmé par le délai réel d'intervention commerciale ? | Métier | Le paramètre d'embargo et la construction de la cible |
-| O4 | Date d'arrivée des données réelles et forme sous laquelle elles arriveront | Utilisateur | Le lot 5 de la roadmap |
+| O4 | Accès Kaggle : compte, acceptation des règles et jeton d'API | Utilisateur | Le lot 2 de la roadmap |
 
-Ces quatre points ne bloquent pas le démarrage : les lots 1 à 4 se construisent avec les valeurs par défaut du fichier de configuration, et un changement de valeur ne demande aucune réécriture.
+Les trois premiers points ne bloquent pas le démarrage : les lots 0 et 1 se construisent avec les valeurs par défaut du fichier de configuration, et un changement de valeur ne demande aucune réécriture. Le quatrième, O4, bloque le lot 2 et doit être levé avant la fin du lot 1.
