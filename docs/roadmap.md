@@ -67,14 +67,19 @@ L'ordre diffère de celui de la spec V3. Le motif est en section 2 de `revue-spe
 - `src/churn/features/windows.py`, agrégations sur fenêtres glissantes de 7, 30 et 90 jours
 - `src/churn/features/build.py`, construction de la grille `(client_id, T0)`, de la cible et de la matrice de variables
 - `tests/test_no_leakage.py`, la sentinelle anti-fuite
+- `tests/test_windows_bruteforce.py`, le contrôle par force brute
+
+**Trois pièges mesurés à traiter dès l'écriture**, détaillés en section 3.5 du contrat de données : normalisation de la résolution temporelle sous pandas 3.0, conservation de l'ordre après `merge_asof`, et agrégation par horodatage avant jointure. Le troisième produisait 10,5 % de lignes fausses silencieuses sur le jeu de mesure.
 
 **Critères d'acceptation**
 
 1. la sentinelle anti-fuite passe sur au moins cinquante couples `(client_id, T0)` tirés au hasard
-2. les couples dont la fenêtre de cible dépasse la fin de l'historique sont écartés, et non étiquetés à zéro
-3. les comptes de moins de 60 jours d'ancienneté sont absents de la grille
-4. le nombre de lignes produites est reproductible à graine constante
-5. un rapport Seaborn de distribution des variables par classe est produit dans `reports/`
+2. le contrôle par force brute passe sur au moins deux cents couples, avec zéro écart
+3. un test dédié couvre le cas des horodatages dupliqués pour un même client
+4. les couples dont la fenêtre de cible dépasse la fin de l'historique sont écartés, et non étiquetés à zéro
+5. les comptes de moins de 60 jours d'ancienneté sont absents de la grille
+6. le nombre de lignes produites est reproductible à graine constante
+7. un rapport Seaborn de distribution des variables par classe est produit dans `reports/`
 
 ---
 

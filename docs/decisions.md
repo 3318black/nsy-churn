@@ -100,7 +100,9 @@ La sortie du pipeline est un fichier Parquet, source de vérité technique, doub
 
 **Statut** : Actée le 2026-09-07.
 
-Python 3.12 minimum, développement et validation sous 3.14.4. Gestion d'environnement et de verrouillage par `uv`. Bibliothèques : pandas, numpy, scikit-learn, xgboost, shap, pydantic, pyarrow, pyyaml, seaborn, matplotlib, pytest.
+Python 3.12 minimum, développement et validation sous 3.14.4. Gestion d'environnement et de verrouillage par `uv`.
+
+Production : pandas, numpy, scikit-learn, xgboost, pydantic, pyarrow, pyyaml, seaborn, matplotlib. Développement seulement : shap, pytest, ruff, mypy. Le placement de `shap` hors production est motivé en D12.
 
 **Motif** : les versions de la spec V3 datent du début 2024. Les versions courantes ont été vérifiées sur PyPI et la chaîne complète a été installée et testée sur ce poste le 2026-09-07.
 
@@ -131,6 +133,52 @@ Aucune licence n'est publiée. Le dépôt est donc en tous droits réservés : l
 Aucun document tiers n'est versionné. Le support de cours ayant servi de modèle pour `AGENTS.md` est exclu par `.gitignore`, car le publier sur un dépôt public reviendrait à le redistribuer.
 
 **Motif** : règles de travail posées par le propriétaire du dépôt. La protection sans acteur de contournement répond à un incident antérieur, où un bypass administrateur avait laissé passer un commit sur une branche censée être protégée.
+
+---
+
+## D12. XGBoost retenu, la bibliothèque shap sort de la production
+
+**Statut** : Actée le 2026-09-07, après mesure.
+
+Le modèle de production est XGBoost. Les contributions SHAP sont obtenues par `booster.predict(dmatrix, pred_contribs=True)`, la fonction native de XGBoost. La bibliothèque `shap` reste une dépendance de développement, réservée à l'exploration et à la comparaison de modèles.
+
+**Mesures qui fondent la décision**, réalisées sur ce poste avec 20 000 observations et 30 variables :
+
+| Modèle | Entraînement | TreeSHAP | Verdict |
+| :--- | ---: | ---: | :--- |
+| XGBoost | 1,63 s | 0,53 s | Retenu |
+| LightGBM | 0,79 s | 1,01 s | Écarté, voir ci-dessous |
+| scikit-learn `HistGradientBoostingClassifier` | 1,35 s | 1,44 s | Écarté, voir ci-dessous |
+
+Les trois sont compatibles avec TreeSHAP, contrairement à ce que laissait craindre l'historique de la bibliothèque. Aucun des trois n'est disqualifié techniquement.
+
+Le point décisif est ailleurs. Les contributions natives de XGBoost et celles de la bibliothèque `shap` ont été comparées ligne à ligne sur 2 000 observations : **l'écart maximal est exactement nul**, et la version native est légèrement plus rapide, 0,47 s contre 0,59 s. Or `shap` tire sept paquets supplémentaires, dont `numba` et `llvmlite`, soit environ 138 Mo. Un pipeline de production qui embarque un compilateur à la volée pour recalculer ce que le modèle sait déjà produire est une dépendance gratuite.
+
+LightGBM est écarté pour une raison de robustesse et non de performance : `shap` émet un avertissement sur le changement de format de sortie pour ses classifieurs binaires, ce qui est une source d'erreur silencieuse. Le `HistGradientBoostingClassifier` de scikit-learn est écarté parce qu'il n'expose pas d'équivalent natif de `pred_contribs`, ce qui rendrait `shap` obligatoire en production.
+
+**Réserve** : si un autre modèle devait être retenu plus tard, `shap` redevient une dépendance de production, et cette décision est révisée.
+
+---
+
+## D13. pandas conservé, avec deux garde-fous obligatoires
+
+**Statut** : Actée le 2026-09-07, après mesure.
+
+pandas reste la bibliothèque de manipulation de données. polars n'est pas introduit.
+
+**Mesure**, sur le cas d'usage réel du lot 2, soit 2 millions d'événements et une grille de 600 000 couples `(client_id, T0)` : `polars.join_asof` s'exécute en 0,46 s contre 2,06 s pour `pandas.merge_asof`, soit un facteur 4,5. À ce volume, l'écart absolu est de 1,6 seconde dans un traitement nocturne. Il ne justifie pas une dépendance supplémentaire ni la coexistence de deux API dans le même dépôt, alors que le reste de la chaîne, scikit-learn, XGBoost et Seaborn, parle pandas.
+
+**Ce que la mesure a réellement révélé est plus important que la vitesse.** La première implémentation pandas produisait 63 319 lignes fausses sur 600 000, soit 10,5 %, sans lever la moindre erreur. Deux causes, toutes deux propres à `merge_asof` :
+
+1. `merge_asof` réindexe le résultat. Un `sort_index()` ne restaure donc pas l'ordre d'origine, et les colonnes sont réaffectées aux mauvaises lignes.
+2. Quand plusieurs événements partagent le même horodatage, `merge_asof` ne garantit pas de retenir la dernière ligne du groupe. Le cumul récupéré est alors intermédiaire.
+
+La correction consiste à conserver explicitement l'index d'origine, et à agréger au cumul maximal par `(client_id, event_ts)` avant la jointure. Après correction, pandas et polars donnent des résultats strictement identiques, tous deux vérifiés à zéro erreur contre un calcul de référence par force brute.
+
+**Deux garde-fous deviennent donc obligatoires dans le lot 2 :**
+
+- agrégation par `(client_id, event_ts)` avant tout `merge_asof`, avec un test dédié sur des horodatages dupliqués
+- contrôle par force brute sur un échantillon aléatoire d'au moins 200 couples, comparant le résultat vectorisé à un filtrage naïf. Ce contrôle est indépendant de la bibliothèque et resterait exigé avec polars.
 
 ---
 

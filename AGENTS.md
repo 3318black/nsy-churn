@@ -55,10 +55,12 @@ Le raisonnement détaillé appartient au fichier de prompt. Le message de fin re
 
 Python 3.12 minimum, développement sous 3.14. Environnement et verrouillage par `uv`.
 
-`pandas`, `numpy`, `scikit-learn`, `xgboost`, `shap`, `pydantic`, `pyarrow`, `pyyaml`, `seaborn`, `matplotlib`, `pytest`, `ruff`, `mypy`.
+Production : `pandas`, `numpy`, `scikit-learn`, `xgboost`, `pydantic`, `pyarrow`, `pyyaml`, `seaborn`, `matplotlib`. Développement seulement : `shap`, `pytest`, `ruff`, `mypy`.
 
 **Ce qu'il ne faut pas utiliser :**
 
+- pas de `shap` dans le code de production. XGBoost calcule les mêmes contributions nativement par `booster.predict(dmatrix, pred_contribs=True)`, au bit près et plus vite. Vérifié par mesure, voir décision D12. La dernière colonne du tableau retourné est le biais, pas une variable
+- pas de `polars`. La question a été mesurée et tranchée en D13
 - pas de `simple-salesforce`, pas de client CRM, pas de `requests` vers un service tiers
 - pas de PostgreSQL, pas de SQLAlchemy, pas de base de données en version 1
 - pas de FastAPI, pas d'Uvicorn, pas de serveur HTTP. L'architecture est entièrement batch
@@ -158,3 +160,6 @@ Recensées à partir de la revue de la spec initiale, dans `docs/revue-spec-v3.m
 - présenter un score de modèle à arbres comme une probabilité
 - ajouter une dépendance parce qu'elle est pratique, sans passer par `docs/decisions.md`
 - traiter les chiffres obtenus sur données synthétiques comme une prévision de performance réelle
+- appeler `merge_asof` sans avoir agrégé au cumul maximal par `(client_id, event_ts)`. Sur le jeu de mesure, cette seule omission produisait 10,5 % de lignes fausses, sans aucune erreur levée
+- utiliser `sort_index()` pour restaurer l'ordre après un `merge_asof`. La fonction réindexe, il faut conserver une colonne d'index d'origine
+- mélanger `datetime64[us]` et `datetime64[ns]` sous pandas 3.0. La résolution se normalise à l'ingestion

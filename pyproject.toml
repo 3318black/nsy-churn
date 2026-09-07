@@ -11,7 +11,9 @@ dependencies = [
     "numpy>=2.5",
     "scikit-learn>=1.9",
     "xgboost>=3.4",
-    "shap>=0.52",
+    # shap est volontairement absent de la production : XGBoost calcule les memes
+    # contributions nativement via pred_contribs, au bit pres et plus vite, sans
+    # tirer numba ni llvmlite. Voir docs/decisions.md, decision D12.
     "pydantic>=2.13",
     "pyarrow>=21.0",
     "pyyaml>=6.0",
@@ -24,6 +26,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # shap sert a l'exploration et a la comparaison de modeles, jamais en production.
+    "shap>=0.52",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.9",
