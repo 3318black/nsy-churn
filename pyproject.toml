@@ -32,6 +32,8 @@ dev = [
     "shap>=0.52",
     # telechargement du jeu KKBox, execute une seule fois hors pipeline.
     "kaggle>=2.2",  # la syntaxe de la CLI a change entre les series 1.x et 2.x
+    # les fichiers KKBox sont livres en .7z, format non gere nativement par Python
+    "py7zr>=1.1",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.9",

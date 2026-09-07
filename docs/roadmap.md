@@ -62,17 +62,22 @@ Neuf lots, séquentiels par construction : chacun consomme la sortie du précéd
 
 **Livrables**
 
-- `src/churn/data/kkbox.py`, échantillonnage des comptes puis projection des trois fichiers sur le contrat
+- `src/churn/data/kkbox.py`, échantillonnage des comptes puis projection des fichiers sur le contrat
 - `src/churn/data/target.py`, reconstruction de la cible depuis les transactions
-- `scripts/download_kkbox.py`, téléchargement et échantillonnage, exécuté une seule fois
+- `scripts/download_kkbox.py`, téléchargement, décompression et échantillonnage, exécuté une seule fois
+
+**Le socle suffit pour ce lot.** Les fichiers de transactions et de comptes, environ 1 Go, portent la cible et toutes les variables `FINANCE`. Les journaux d'écoute, 7,8 Go, ne sont requis qu'au lot 3. Voir la section 2.3 de `dataset-kkbox.md`.
+
+**Trois pièges mesurés le 2026-09-07** : les fichiers sont livrés en `.7z` et non en CSV, les archives portent une arborescence interne `data/churn_comp_refresh/` à aplatir, et les fichiers suffixés `_v2` ne contiennent pas l'historique. Détails en sections 2.1 et 2.2 du même document.
 
 **Critères d'acceptation**
 
-1. `user_logs_v2.csv` est lu par morceaux, jamais chargé en une fois
+1. les journaux d'écoute sont lus par morceaux, jamais chargés en une fois
 2. les données brutes restent sous `data/raw/` et n'apparaissent dans aucun commit
 3. la colonne `bd` est explicitement rejetée, avec une trace dans le journal, et non ignorée en silence
-4. **la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence, et le taux de concordance est consigné dans un rapport.** C'est le critère le plus important du lot
-5. le jeu projeté passe tous les contrôles de `validate.py` du lot 1, sans assouplissement
+4. les dates d'expiration aberrantes, jusqu'à `20361015`, sont bornées ou écartées explicitement
+5. **la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence, et le taux de concordance est consigné dans un rapport.** C'est le critère le plus important du lot. Référence mesurée : 970 960 comptes, dont 87 330 en churn, soit 8,99 %
+6. le jeu projeté passe tous les contrôles de `validate.py` du lot 1, sans assouplissement
 
 ---
 

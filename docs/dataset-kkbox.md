@@ -12,14 +12,44 @@ Le jeu Telco d'IBM, sur lequel repose la quasi-totalité des projets de churn pu
 
 ## 2. Fichiers sources et volumétrie
 
-| Fichier | Contenu | Ordre de grandeur |
-| :--- | :--- | :--- |
-| `members_v3.csv` | Attributs de compte | 6,7 millions d'utilisateurs |
-| `transactions_v2.csv` | Abonnements et facturation | 21,5 millions de lignes |
-| `user_logs_v2.csv` | Écoute quotidienne par utilisateur | environ 30 Go |
-| `train_v2.csv` | Étiquette officielle de churn | pour un mois de référence |
+Tailles relevées par l'API le 7 septembre 2026. **Tous les fichiers sont livrés au format `.7z`**, et non en CSV brut ni en ZIP.
 
-**Échantillonnage obligatoire.** Un tirage aléatoire de comptes est effectué en premier, puis les trois fichiers sont filtrés sur cet échantillon. `user_logs_v2.csv` se lit par morceaux, jamais en une fois. La taille d'échantillon par défaut est fixée dans `config.yaml`, à 50 000 comptes.
+| Fichier livré | Contenu | Taille compressée |
+| :--- | :--- | ---: |
+| `members_v3.csv.7z` | Attributs de compte | 242 Mo |
+| `transactions.csv.7z` | Historique d'abonnement, première phase | 707 Mo |
+| `transactions_v2.csv.7z` | Abonnements, seconde phase | 49 Mo |
+| `user_logs.csv.7z` | Écoute quotidienne, première phase | 7,1 Go |
+| `user_logs_v2.csv.7z` | Écoute quotidienne, seconde phase | 686 Mo |
+| `train_v2.csv.7z` | Étiquette officielle de churn | 33 Mo |
+
+### 2.1 Deux générations de fichiers, et pourquoi les deux sont nécessaires
+
+La compétition s'est déroulée en deux phases. Les fichiers suffixés `_v2` ne remplacent pas les autres, ils les complètent sur la période récente.
+
+Mesure faite sur `transactions_v2.csv` le 7 septembre 2026 : le fichier couvre bien 2015 à 2017, mais **74,8 % de ses 1 431 009 lignes tombent en mars 2017**, et seules 361 187 transactions lui sont antérieures. Il ne porte donc pas l'historique.
+
+Conséquence : construire une grille d'observation sur deux ans exige `transactions.csv` **et** `transactions_v2.csv`. La même logique vaut pour les journaux d'écoute. Ne prendre que les fichiers `_v2` réduirait l'historique à un mois et viderait le protocole de son sens.
+
+### 2.2 Décompression
+
+Aucun décompresseur 7z n'est installé sur le poste, et Python n'en gère pas nativement. La dépendance `py7zr` est ajoutée au groupe de développement.
+
+Mesure de référence : `train_v2.csv.7z`, 33 Mo compressés vers 45,6 Mo, décompressé en 3,1 secondes.
+
+**Piège d'arborescence.** Les archives contiennent un chemin interne, `data/churn_comp_refresh/<fichier>.csv`. Une extraction vers `data/raw` produit donc `data/raw/data/churn_comp_refresh/train_v2.csv`, et non `data/raw/train_v2.csv`. Le script de téléchargement doit aplatir cette arborescence, ou le reste du pipeline doit résoudre les chemins par recherche récursive.
+
+### 2.3 Ordre de récupération recommandé
+
+Le débit observé est d'environ 5 Mo par seconde.
+
+**Socle, environ 1 Go et quatre minutes** : `train_v2.csv.7z`, `transactions.csv.7z`, `transactions_v2.csv.7z`, `members_v3.csv.7z`.
+
+Ce socle suffit à reconstruire la cible sur toute la période, à la valider contre l'étiquette officielle, à construire l'intégralité des variables `FINANCE` et à entraîner un premier modèle complet. Autrement dit, il couvre le critère central du lot 2 et permet d'aller jusqu'au lot 6.
+
+**Enrichissement, environ 7,8 Go et une demi-heure** : `user_logs_v2.csv.7z` puis `user_logs.csv.7z`. Ils apportent les variables `PRODUCT`, dont le taux de complétion qui porte le signal le plus intéressant du jeu. Ils ne conditionnent aucun critère d'acceptation antérieur au lot 3.
+
+**Échantillonnage obligatoire.** Un tirage aléatoire de comptes est effectué en premier, puis les fichiers sont filtrés sur cet échantillon. Les journaux d'écoute se lisent par morceaux, jamais en une fois. La taille d'échantillon par défaut est fixée dans `config.yaml`, à 50 000 comptes.
 
 **Les données ne sont jamais versionnées.** Elles restent sous `data/raw/`, exclu par `.gitignore`. Les règles de la compétition encadrent leur usage et n'autorisent pas la redistribution.
 
@@ -39,6 +69,8 @@ Le jeu Telco d'IBM, sur lequel repose la quasi-totalité des projets de churn pu
 **Le contrat distingue désormais un noyau obligatoire et des colonnes optionnelles.** `nb_licences` devient optionnelle. Une source qui ne la fournit pas reste conforme, et les variables qui en dépendent sont simplement absentes de la matrice.
 
 **Piège à traiter :** la colonne `bd`, censée porter l'âge, contient des valeurs aberrantes notoires, négatives ou supérieures à 1000. Elle n'est pas reprise. La rejeter explicitement, plutôt que l'ignorer en silence, fait partie du travail attendu.
+
+**Second piège, mesuré :** `membership_expire_date` monte jusqu'à `20361015`. Sur le seul fichier `transactions_v2.csv`, 9 718 lignes portent une expiration postérieure à fin 2018. Ces valeurs doivent être bornées ou écartées explicitement, faute de quoi elles rendraient les comptes concernés éternellement actifs et fausseraient la cible.
 
 ## 4. Projection sur la table `events`
 
@@ -65,6 +97,8 @@ La définition officielle est la suivante : un utilisateur a churné s'il n'a au
 Le fichier `train_v2.csv` fournit l'étiquette pour un unique mois de référence. Il ne permet donc pas de construire une grille d'observation multi-dates, qui est la base de tout le protocole.
 
 **La cible est donc reconstruite depuis `transactions`**, pour chaque date d'observation `T0` : le compte est en churn si son abonnement expire après `T0` et qu'aucune transaction de renouvellement n'intervient dans les 30 jours suivant cette expiration.
+
+**Référence mesurée le 7 septembre 2026 :** `train_v2.csv` contient 970 960 comptes, dont 87 330 en churn, soit un taux de 8,99 %.
 
 **Contrôle de validation obligatoire :** la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence. Le taux de concordance est mesuré et consigné dans le rapport. Un écart important signale une erreur de reconstruction, pas une imprécision de l'étiquette officielle.
 
@@ -151,17 +185,21 @@ La commande doit lister les fichiers avec leur taille. Un échec pour cause d'au
 
 Les fichiers se récupèrent séparément, jamais en une seule commande, afin de ne pas rapatrier l'intégralité du jeu d'un coup.
 
+Les noms portent bien l'extension `.7z`. Sans elle, l'API renvoie une erreur de fichier introuvable.
+
 ```bash
 mkdir -p data/raw
-uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f members_v3.csv -p data/raw
-uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f transactions_v2.csv -p data/raw
-uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f train_v2.csv -p data/raw
-uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f user_logs_v2.csv -p data/raw
+# Socle, environ 1 Go
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f train_v2.csv.7z -p data/raw
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f members_v3.csv.7z -p data/raw
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f transactions.csv.7z -p data/raw
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f transactions_v2.csv.7z -p data/raw
+# Enrichissement, environ 7,8 Go
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f user_logs_v2.csv.7z -p data/raw
+uv run kaggle competitions download -c kkbox-churn-prediction-challenge -f user_logs.csv.7z -p data/raw
 ```
 
-Le format d'archive livré par l'API est à confirmer au premier téléchargement. Le script `scripts/download_kkbox.py` du lot 2 prend en charge la décompression et l'échantillonnage.
-
-**Ordre recommandé** : commencer par les trois premiers fichiers, qui sont légers. Ils suffisent à construire la table `accounts`, à reconstruire la cible et à valider cette reconstruction contre l'étiquette officielle, ce qui est le critère central du lot 2. Le fichier `user_logs_v2.csv`, d'environ 30 Go, n'est nécessaire qu'aux variables d'usage produit et peut se télécharger pendant que le reste avance.
+Le script `scripts/download_kkbox.py` du lot 2 automatise cette séquence, aplatit l'arborescence interne des archives et procède à l'échantillonnage. Le détail de l'ordre et des volumes est en section 2.3.
 
 ### 7.6 Si l'accès tarde
 
