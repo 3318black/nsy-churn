@@ -40,6 +40,7 @@ Les données brutes ne sont pas versionnées.
 | `docs/dataset-kkbox.md` | Projection du jeu KKBox sur le contrat et reconstruction de la cible. |
 | `docs/roadmap.md` | Neuf lots, avec critères d'acceptation. |
 | `docs/revue-spec-v3.md` | Revue critique du cadrage initial et motifs des corrections. |
+| `docs/stack.md` | Stack complète, versions vérifiées, pièges connus. |
 | `refs/` | Cadrage d'origine, conservé comme archive. |
 
 Le guide de rédaction d'AGENTS.md qui a servi de modèle est un support de cours externe. Il n'est pas redistribué ici et reste hors du suivi de version. Sa substance est intégrée à `AGENTS.md`.
