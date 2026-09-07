@@ -1,0 +1,33 @@
+# Environnements
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Donnees : jamais dans le suivi de version
+data/raw/*
+data/processed/*
+data/exports/*
+!data/**/.gitkeep
+
+# Modeles serialises et rapports generes
+models/
+reports/
+*.pkl
+*.joblib
+*.ubj
+
+# Secrets
+.env
+*.pem
+
+# Outils
+.ipynb_checkpoints/
+.DS_Store
+*.log
+
+# Documents de reference externes, non redistribues
+refs/AGENTS.md_GUIDE.pdf
