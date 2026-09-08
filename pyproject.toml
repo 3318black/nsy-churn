@@ -63,7 +63,9 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DTZ", "PD", "PL", "RUF
 # PLR2004 : une assertion de test compare a une valeur attendue, ecrite en clair.
 # Extraire ces valeurs dans des constantes eloignerait l'attendu de l'assertion
 # et rendrait le test moins lisible, pas plus.
-"tests/*" = ["PLR2004"]
+# PLR0913 et PLR0917 : une fabrique de ligne de test enumere les colonnes de la
+# table, ce qui est plus lisible qu'un dictionnaire assemble a l'appel.
+"tests/*" = ["PLR2004", "PLR0913", "PLR0917"]
 
 [tool.mypy]
 python_version = "3.12"
