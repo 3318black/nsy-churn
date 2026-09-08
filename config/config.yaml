@@ -23,10 +23,17 @@ sources:
     sample_accounts: 50000
     # user_logs_v2.csv pese environ 30 Go, lecture par morceaux obligatoire.
     chunk_size: 1000000
+    # Deux generations de fichiers, et les deux sont necessaires. Les fichiers
+    # suffixes _v2 ne remplacent pas les autres, ils les completent sur la
+    # periode recente : 74,8 % de transactions_v2.csv tombe en mars 2017.
+    # Ne prendre que les _v2 reduirait l'historique a un mois.
+    # Voir docs/dataset-kkbox.md section 2.1.
     raw_files:
       members: "members_v3.csv"
-      transactions: "transactions_v2.csv"
-      user_logs: "user_logs_v2.csv"
+      transactions_history: "transactions.csv"
+      transactions_recent: "transactions_v2.csv"
+      user_logs_history: "user_logs.csv"
+      user_logs_recent: "user_logs_v2.csv"
       official_labels: "train_v2.csv"
 
   synthetic:

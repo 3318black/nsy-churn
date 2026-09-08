@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Controles Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.12 est le minimum declare, 3.14 la version de developpement. Voir D9.
+        python-version: ["3.12", "3.14"]
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Installer Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Synchroniser l'environnement
+        run: uv sync --locked
+        env:
+          UV_PYTHON: ${{ matrix.python-version }}
+
+      - name: Verifier les regles ruff
+        run: uv run ruff check src tests
+        env:
+          UV_PYTHON: ${{ matrix.python-version }}
+
+      - name: Verifier le formatage
+        run: uv run ruff format --check src tests
+        env:
+          UV_PYTHON: ${{ matrix.python-version }}
+
+      - name: Verifier le typage
+        run: uv run mypy src
+        env:
+          UV_PYTHON: ${{ matrix.python-version }}
+
+      - name: Executer les tests
+        run: uv run pytest -q
+        env:
+          UV_PYTHON: ${{ matrix.python-version }}
