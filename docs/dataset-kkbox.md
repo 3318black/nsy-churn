@@ -65,6 +65,8 @@ Ces valeurs servent de contrôle : un écart important lors du chargement signal
 | `transactions_v2.csv` | 1 431 009 | 1 197 050 | 2015-01-01 au 2017-03-31 |
 | `train_v2.csv` | 970 960 | 970 960 | étiquette de mars 2017, churn à 8,99 % |
 
+**Les deux fichiers ne se recouvrent pas par des doublons.** Vérification faite sur un échantillon de 8 000 comptes : les 1 315 lignes de `transactions_v2.csv` antérieures au 28 février 2017 ne sont identiques à aucune ligne de `transactions.csv`. Ce sont des transactions que le premier fichier ne contient pas. La concaténation est donc obligatoire, et le dédoublonnage doit rester strictement exact.
+
 **L'union des deux fichiers de transactions couvre 27 mois**, de janvier 2015 à mars 2017. C'est la profondeur réelle disponible pour la grille d'observation. `transactions.csv` s'arrête au 28 février 2017 et `transactions_v2.csv` prend le relais : les deux sont complémentaires, avec un recouvrement de 361 187 lignes antérieures à mars 2017 qu'il faut dédupliquer.
 
 ### Conséquence sur l'échantillonnage
@@ -140,7 +142,21 @@ Le fichier `train_v2.csv` fournit l'étiquette pour un unique mois de référenc
 
 **Référence mesurée le 7 septembre 2026 :** `train_v2.csv` contient 970 960 comptes, dont 87 330 en churn, soit un taux de 8,99 %.
 
-**Contrôle de validation obligatoire :** la cible reconstruite est comparée à `train_v2.csv` sur le mois de référence. Le taux de concordance est mesuré et consigné dans le rapport. Un écart important signale une erreur de reconstruction, pas une imprécision de l'étiquette officielle.
+**La règle n'est pas devinable, et elle n'a pas été devinée.** La compétition livre son propre labelleur, `WSDMChurnLabeller.scala`. Cinq de ses points auraient été faux sous n'importe quelle hypothèse raisonnable.
+
+1. L'historique de référence est **un mois**, pas tout le passé. Seules les transactions de ce mois fixent l'expiration en vigueur.
+2. Les candidats sont les comptes dont l'expiration tombe le **mois suivant**. Un compte dont l'abonnement court plus loin n'est pas candidat du tout.
+3. Le délai se mesure entre l'expiration et la **date de transaction** du renouvellement, jamais entre deux expirations.
+4. Une annulation peut **avancer** la date d'expiration, et des annulations successives continuent de l'avancer.
+5. Les transactions d'une même journée suivent un ordre précis : signature de plan décroissante, souscription avant annulation, puis expiration croissante pour un renouvellement et décroissante pour une annulation.
+
+Le labelleur fourni porte `historyCutoff = 20170131` et retient les expirations de février : c'est celui de `train.csv`, la première phase, et non celui de `train_v2.csv`. La transposition à la seconde phase, historique de février et expirations de mars, a été vérifiée par la mesure.
+
+**Contrôle de validation, mesuré le 8 septembre 2026 :** sur un échantillon de 30 000 comptes, la cible reconstruite pour mars 2017 concorde avec `train_v2.csv` sur **97,03 %** des 25 702 comptes communs.
+
+Le contrôle par l'absurde confirme le choix de la fenêtre. Appliquée à février, la même reconstruction produit un taux de churn de 0,03 % là où l'étiquette officielle donne 4,52 % : nos données allant jusqu'au 31 mars, tous les renouvellements de février y sont visibles et presque personne ne churne. Une fenêtre mal placée se voit donc immédiatement.
+
+Les 3 % d'écart restants se répartissent en 227 comptes pour lesquels aucun renouvellement n'est trouvé alors que l'étiquette officielle en suppose un, et 537 comptes pour lesquels un renouvellement est trouvé avec un délai médian de moins un jour. L'écart n'est pas expliqué à ce jour et n'est pas masqué.
 
 Ce contrôle est le point technique le plus démonstratif du projet. Reconstruire une cible temporelle depuis des transactions brutes, puis prouver la reconstruction contre une référence, est exactement ce que demande la mise en production d'un modèle de churn.
 
