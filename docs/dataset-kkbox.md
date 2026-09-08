@@ -14,14 +14,18 @@ Le jeu Telco d'IBM, sur lequel repose la quasi-totalité des projets de churn pu
 
 Tailles relevées par l'API le 7 septembre 2026. **Tous les fichiers sont livrés au format `.7z`**, et non en CSV brut ni en ZIP.
 
-| Fichier livré | Contenu | Taille compressée |
-| :--- | :--- | ---: |
-| `members_v3.csv.7z` | Attributs de compte | 242 Mo |
-| `transactions.csv.7z` | Historique d'abonnement, première phase | 707 Mo |
-| `transactions_v2.csv.7z` | Abonnements, seconde phase | 49 Mo |
-| `user_logs.csv.7z` | Écoute quotidienne, première phase | 7,1 Go |
-| `user_logs_v2.csv.7z` | Écoute quotidienne, seconde phase | 686 Mo |
-| `train_v2.csv.7z` | Étiquette officielle de churn | 33 Mo |
+| Fichier livré | Contenu | Compressé | Décompressé |
+| :--- | :--- | ---: | ---: |
+| `members_v3.csv.7z` | Attributs de compte | 231 Mo | 428 Mo |
+| `transactions.csv.7z` | Historique d'abonnement, première phase | 675 Mo | 1,73 Go |
+| `transactions_v2.csv.7z` | Abonnements, seconde phase | 47 Mo | 115 Mo |
+| `user_logs.csv.7z` | Écoute quotidienne, première phase | 6,8 Go | 30,51 Go |
+| `user_logs_v2.csv.7z` | Écoute quotidienne, seconde phase | 654 Mo | 1,43 Go |
+| `train_v2.csv.7z` | Étiquette officielle de churn | 31 Mo | 46 Mo |
+
+Les six archives ont été téléchargées et leur intégrité vérifiée le 8 septembre 2026. Tailles décompressées relevées dans les métadonnées des archives.
+
+**Le journal complet occupe 30,5 Go une fois décompressé.** Il ne doit être extrait qu'une seule fois, filtré immédiatement sur l'échantillon de comptes, écrit en Parquet, puis le CSV supprimé. Conserver 30 Go de texte brut à côté d'un Parquet filtré n'apporte rien et complique les relances.
 
 ### 2.1 Deux générations de fichiers, et pourquoi les deux sont nécessaires
 
