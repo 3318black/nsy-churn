@@ -59,6 +59,12 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DTZ", "PD", "PL", "RUF
 # DTZ : interdit les datetime naifs, exigence du contrat de donnees.
 # PD  : regles pandas, evite les anti-patterns silencieux.
 
+[tool.ruff.lint.per-file-ignores]
+# PLR2004 : une assertion de test compare a une valeur attendue, ecrite en clair.
+# Extraire ces valeurs dans des constantes eloignerait l'attendu de l'assertion
+# et rendrait le test moins lisible, pas plus.
+"tests/*" = ["PLR2004"]
+
 [tool.mypy]
 python_version = "3.12"
 # strict = true  # remis apres l'echeance de candidature, voir decision D16

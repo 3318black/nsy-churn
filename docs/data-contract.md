@@ -43,13 +43,20 @@ Une ligne par événement daté. C'est la seule source d'information comportemen
 | :--- | :--- | :--- |
 | `connexion` | Nombre de sessions du jour | Produit |
 | `usage_module_cle` | Durée d'usage en minutes | Produit |
+| `taux_completion` | Part des contenus consommés en entier, entre 0 et 1 | Produit |
 | `desactivation_module` | Identifiant numérique du module | Produit |
 | `ticket_support_ouvert` | Niveau de priorité, de 1 à 4 | Support |
 | `ticket_support_resolu` | Délai de résolution en heures | Support |
 | `facture_emise` | Montant en euros | Finance |
 | `facture_payee` | Délai de paiement en jours, négatif si anticipé | Finance |
 | `echec_prelevement` | Montant en euros | Finance |
+| `annulation_abonnement` | Toujours 1, l'événement porte l'information | Finance |
+| `desactivation_renouvellement` | Toujours 1, l'événement porte l'information | Finance |
 | `contact_commercial` | Durée de l'échange en minutes | Commercial |
+
+**La nomenclature est fermée mais aucune source ne la remplit entièrement.** Elle est l'union des types que les sources prévues savent produire. Le jeu KKBox n'a ni support ni contact commercial ; un jeu d'entreprise n'aura pas de taux de complétion. Le pipeline doit donc fonctionner sur un sous-ensemble, sans code conditionnel dispersé : une famille absente produit simplement moins de variables.
+
+Ajouter un type à cette table est une modification du contrat. Elle se fait ici, en connaissance de cause, jamais dans un adaptateur.
 
 **Invariants vérifiés à l'ingestion, en échec bloquant :**
 
