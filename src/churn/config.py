@@ -108,11 +108,20 @@ class SourceProfile(_StrictModel):
 
 
 class KkboxRawFiles(_StrictModel):
-    """File names of the raw KKBox extracts, relative to ``paths.raw``."""
+    """File names of the raw KKBox extracts, relative to ``paths.raw``.
+
+    Transactions and listening logs each come in two generations. The ``_v2``
+    files do not supersede the others, they complete them over the recent
+    period: 74.8% of ``transactions_v2.csv`` falls in March 2017. Loading only
+    the ``_v2`` files would shrink the history to a single month and void the
+    temporal protocol. See ``docs/dataset-kkbox.md`` section 2.1.
+    """
 
     members: str = Field(min_length=1)
-    transactions: str = Field(min_length=1)
-    user_logs: str = Field(min_length=1)
+    transactions_history: str = Field(min_length=1)
+    transactions_recent: str = Field(min_length=1)
+    user_logs_history: str = Field(min_length=1)
+    user_logs_recent: str = Field(min_length=1)
     official_labels: str = Field(min_length=1)
 
 

@@ -38,7 +38,23 @@ def test_source_profiles_are_typed_by_role(config: AppConfig) -> None:
     assert isinstance(config.sources.synthetic, SyntheticSourceConfig)
     assert config.sources.kkbox.is_synthetic is False
     assert config.sources.synthetic.is_synthetic is True
-    assert config.sources.kkbox.raw_files.transactions.endswith(".csv")
+    raw_files = config.sources.kkbox.raw_files
+    assert all(
+        name.endswith(".csv")
+        for name in (
+            raw_files.members,
+            raw_files.transactions_history,
+            raw_files.transactions_recent,
+            raw_files.user_logs_history,
+            raw_files.user_logs_recent,
+            raw_files.official_labels,
+        )
+    )
+    # The two generations must be distinct files. Declaring the same name twice
+    # would silently shrink the history to a single month, see dataset-kkbox.md
+    # section 2.1.
+    assert raw_files.transactions_history != raw_files.transactions_recent
+    assert raw_files.user_logs_history != raw_files.user_logs_recent
 
 
 def test_active_profile_returns_the_declared_profile(config: AppConfig) -> None:
