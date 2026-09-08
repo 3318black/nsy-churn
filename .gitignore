@@ -30,6 +30,9 @@ access_token.txt
 *.token
 
 # Outils
+# Reglages d'editeur : ils appartiennent au poste, pas au projet.
+.vscode/
+.idea/
 .ipynb_checkpoints/
 .DS_Store
 *.log

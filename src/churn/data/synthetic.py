@@ -27,6 +27,15 @@ more than realism.
 
 Determinism is strict: two runs with the same seed produce identical frames, row
 order included.
+
+**Known limitation, seen on 2026-09-08 in the distribution report.** The finance
+family separates the two classes almost perfectly: a failed direct debit is only
+ever emitted inside the signal window of an account that will terminate, so a
+model reading it would look brilliant. This is a weakness of the simulation, not
+of the pipeline, and it is why decision D14 confines this generator to the tests
+and forbids it from carrying any performance figure. Emitting incidents on
+healthy accounts too would make the simulated problem honest, and it is the first
+thing to fix should this jeu ever serve a measurement.
 """
 
 from __future__ import annotations
@@ -254,6 +263,8 @@ class _Emitter:
         rates: np.ndarray,
         event_type: EventType,
         value_fn: Callable[[np.random.Generator, int], np.ndarray],
+        *,
+        day_granular: bool = False,
     ) -> pd.DataFrame:
         """Draw a Poisson count per eligible day and expand it into event rows.
 
@@ -262,6 +273,11 @@ class _Emitter:
             rates: mean daily count, per grid row.
             event_type: type of the emitted events.
             value_fn: draws the payload of the emitted events.
+            day_granular: place the events at midnight rather than during
+                working hours. Billing systems date to the day, and KKBox does
+                so for every one of its events. Without this the journal would
+                never carry an event landing exactly on an observation date, and
+                the strict bound of the windows would never be exercised.
 
         Returns:
             The emitted rows, in contract shape.
@@ -274,10 +290,14 @@ class _Emitter:
 
         row_index = np.repeat(np.arange(len(self.grid)), counts)
         total = row_index.size
-        # Spread the events of one day over working hours, so the journal carries
-        # a real time of day rather than midnight everywhere.
-        minutes = self.rng.integers(8 * 60, 20 * 60, size=total)
-        stamps = self.grid["day"].to_numpy()[row_index] + minutes * np.timedelta64(1, "m")
+        days = self.grid["day"].to_numpy()[row_index]
+        if day_granular:
+            stamps = days
+        else:
+            # Spread over working hours, so the journal carries a real time of
+            # day rather than midnight everywhere.
+            minutes = self.rng.integers(8 * 60, 20 * 60, size=total)
+            stamps = days + minutes * np.timedelta64(1, "m")
         accounts_of_rows = self.grid["account_index"].to_numpy()[row_index]
         return pd.DataFrame(
             {
@@ -378,18 +398,21 @@ def generate_dataset(
             np.full(len(grid), 1 / 30.0),
             EventType.FACTURE_EMISE,
             gamma(2.0, 90.0),
+            day_granular=True,
         ),
         emitter.emit(
             finance_bad,
             np.full(len(grid), 1 / 25.0),
             EventType.ECHEC_PRELEVEMENT,
             gamma(2.0, 60.0),
+            day_granular=True,
         ),
         emitter.emit(
             finance_bad,
             np.full(len(grid), 1 / 20.0),
             EventType.FACTURE_PAYEE,
             gamma(4.0, 6.0),
+            day_granular=True,
         ),
         emitter.emit(
             everywhere,
