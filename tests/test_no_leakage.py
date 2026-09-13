@@ -124,7 +124,7 @@ def test_the_reference_table_never_reaches_the_training_set(
     The sentinel above truncates the journal, so it cannot see a column of the
     reference that describes the account at extraction time. On KKBox the revenue
     of the reference came from the last transaction, and it differed from the
-    revenue in force at T0 on 19% of the grid rows. Rewriting every column of the
+    revenue in force at T0 on 22.5% of the grid rows. Rewriting every column of the
     reference that no rule of the grid needs must change nothing.
     """
     accounts = dataset.accounts.assign(

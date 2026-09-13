@@ -127,7 +127,11 @@ Ce socle suffit à reconstruire la cible sur toute la période, à la valider co
 | `desactivation_renouvellement` | `transactions`, passage de `is_auto_renew` de 1 à 0 | 1 |
 | `revenu_mensuel` | `transactions`, une ligne par transaction | `plan_list_price` ramené à 30 jours par `payment_plan_days`. État lu à `T0`, jamais sommé, voir D18 |
 
-**Revenu daté plutôt que figé, mesuré le 13 septembre 2026.** Sur l'échantillon de 8 150 comptes, 42 % ont connu plus d'un revenu mensuel au cours de l'historique. Le revenu de la dernière transaction différait de celui en vigueur à la date d'observation sur 19 % des couples. C'est pourquoi chaque transaction émet un événement `revenu_mensuel`, et le revenu d'un couple se lit dans le journal.
+**Revenu daté plutôt que figé, mesuré le 13 septembre 2026.** Dans le journal projeté de l'échantillon de 8 150 comptes, 34 % des comptes ont connu plus d'un revenu mensuel. Sur la grille hebdomadaire, le revenu de la dernière transaction différait de celui en vigueur à la date d'observation sur 22,5 % des couples, et sur 32,6 % des couples positifs. C'est pourquoi chaque transaction émet un événement `revenu_mensuel`, et le revenu d'un couple se lit dans le journal.
+
+**Un revenu nul veut dire inconnu, pas gratuit.** 27,3 % des couples n'ont encore aucune transaction antérieure à `T0`. L'extrait commence en janvier 2015 : un abonné à une formule longue souscrite avant cette date n'apparaît qu'à son renouvellement.
+
+**Journal d'écoute complet, mesuré le 13 septembre 2026** sur l'échantillon de 8 150 comptes : 7 881 comptes ont un historique d'écoute, soit 1 391 093 jours d'écoute du 1er janvier 2015 au 31 mars 2017, et 4 329 107 événements au total dans le journal projeté. La lecture par morceaux de `user_logs.csv` et `user_logs_v2.csv` prend environ 18 minutes sur ce poste pour 0,55 Go de mémoire. Le taux de complétion quotidien a une médiane de 0,78.
 
 **Absence assumée :** ce jeu ne comporte ni tickets support ni contact commercial. Les catégories `SUPPORT` et `COMMERCIAL` du fichier de correspondance disparaissent pour cette source. Le pipeline doit fonctionner avec un sous-ensemble de catégories, sans code conditionnel dispersé.
 

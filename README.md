@@ -4,7 +4,7 @@ Moteur de prédiction de résiliation client. À une date donnée, il classe les
 
 ## État du projet
 
-Cadrage terminé le 7 septembre 2026. Lots 0 à 4 livrés : socle, contrat de données, adaptateur KKBox, jeu d'apprentissage sans fuite et protocole d'évaluation. Lot 5, modélisation et explicabilité, en cours.
+Cadrage terminé le 7 septembre 2026. Lots 0 à 4 livrés : socle, contrat de données, adaptateur KKBox, jeu d'apprentissage sans fuite et protocole d'évaluation. Lot 5, modélisation et explicabilité, en revue : sur KKBox, le modèle atteint une Precision@50 de 0,333 contre 0,098 pour le tri par revenu, détail dans `docs/resultats.md`.
 
 Ce README sera réécrit au dernier lot, une fois les résultats disponibles. Le plan imposé figure au lot 8 de la roadmap.
 

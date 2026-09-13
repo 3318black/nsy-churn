@@ -145,7 +145,7 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `scripts/train_model.py`, comparaison du modèle aux lignes de base dans le protocole du lot 4, puis entraînement, sauvegarde et explication de la dernière période
 - `docs/cours/lot-5-modelisation.md`, le document de cours du lot
 
-**Préalable découvert au démarrage, décision D18.** Le revenu utilisé comme variable et comme ligne de base venait de la dernière transaction du compte, postérieure à `T0` sur 19 % des lignes. Il est désormais lu dans le journal, par l'événement `revenu_mensuel`, et les lignes de base sont remesurées sur la grille corrigée.
+**Préalable découvert au démarrage, décision D18.** Le revenu utilisé comme variable et comme ligne de base venait de la dernière transaction du compte, différente du revenu en vigueur à `T0` sur 22,5 % des lignes de la grille. Il est désormais lu dans le journal, par l'événement `revenu_mensuel`, et les lignes de base sont remesurées sur la grille corrigée.
 
 **Deux mesures, deux questions.** Le gain du modèle se mesure à variables égales, régression logistique contre XGBoost sur la seule famille financière. Le gain des données se mesure à modèle égal, XGBoost avec et sans la famille d'usage issue du journal d'écoute complet.
 

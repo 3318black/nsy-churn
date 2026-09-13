@@ -198,7 +198,9 @@ def _train_and_explain(
 
     without_factor = (listing[f"{FACTOR_COLUMN_PREFIX}1"] == "").mean()
     print(f"periode     : {last:%Y-%m-%d}, {len(rows):,} comptes")
-    print(f"top {k:<7} : {int(listing['y'].sum())} partis dans l'horizon")
+    # In sample: the final model was trained on these very rows. The count only
+    # shows the listing is coherent, it measures nothing. The measure is above.
+    print(f"top {k:<7} : {int(listing['y'].sum())} partis, en echantillon, pas une mesure")
     print(f"sans motif  : {without_factor:.0%} de la liste")
     print("contribution positive moyenne par variable d'origine, derniere periode :")
     print(aggregated.clip(lower=0.0).mean().sort_values(ascending=False).head(10).round(4))

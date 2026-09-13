@@ -115,7 +115,7 @@ def test_several_revenues_on_one_instant_resolve_to_the_maximum(spec: GridSpec) 
 
 
 def test_an_account_without_known_revenue_carries_zero(spec: GridSpec) -> None:
-    """Nothing billed so far is a fact, not a gap to fill from the reference."""
+    """An unknown revenue stays zero, never filled from the reference."""
     grid = build_grid(
         _dataset_of(_one_account("2024-06-01"), _events_between("2024-06-01", "2025-12-31")), spec
     )

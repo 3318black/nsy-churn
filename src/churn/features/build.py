@@ -26,8 +26,9 @@ of the reference table that postdates it. The sentinel of
 **The revenue of a pair is read from the journal, never from the reference.**
 The reference describes each account at extraction time. On KKBox its revenue
 comes from the last transaction, and on 2026-09-13 it differed from the revenue
-in force at ``T0`` on 19% of the grid rows. The sentinel could not see it, since
-it truncates the journal and not the reference. Decision D18.
+in force at ``T0`` on 22.5% of the grid rows and on 32.6% of the positive ones.
+The sentinel could not see it, since it truncates the journal and not the
+reference. Decision D18.
 """
 
 from __future__ import annotations
@@ -149,8 +150,10 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
         & (ended.loc[grid.index] > grid["T0"])
         & (ended.loc[grid.index] <= grid["T0"] + horizon)
     ).astype("int64")
-    # Revenue in force strictly before T0. An account without any known revenue
-    # yet carries zero, which is the fact: nothing has been billed so far.
+    # Revenue in force strictly before T0, zero when the journal knows none yet.
+    # Zero means unknown rather than free: the KKBox extract starts in 2015, and
+    # a long plan bought earlier only shows at its renewal. Never filled from the
+    # reference, which would bring the leak of decision D18 back.
     grid["mrr"] = read_state_at(
         grid, dataset.events, EventType.REVENU_MENSUEL.value, spec.resolution
     ).fillna(0.0)

@@ -354,7 +354,7 @@ def build_accounts(
     # contract type come from the last transaction. Neither may feed a pair
     # observed earlier: a pair reads its revenue from the ``revenu_mensuel``
     # events, as known strictly before T0. Measured on 2026-09-13, the value of
-    # the last transaction differed from the one in force at T0 on 19% of the
+    # the last transaction differed from the one in force at T0 on 22.5% of the
     # grid rows. Decision D18.
     plans = (
         transactions.sort_values(["msno", "transaction_date"])
