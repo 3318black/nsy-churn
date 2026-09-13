@@ -63,6 +63,7 @@ __all__ = [
     "EVENTS_SCHEMA",
     "EVENTS_TABLE",
     "EVENT_FAMILIES",
+    "STATE_EVENT_TYPES",
     "TABLE_SCHEMAS",
     "AccountRecord",
     "AcquisitionChannel",
@@ -139,6 +140,7 @@ class EventType(StrEnum):
     ECHEC_PRELEVEMENT = "echec_prelevement"
     ANNULATION_ABONNEMENT = "annulation_abonnement"
     DESACTIVATION_RENOUVELLEMENT = "desactivation_renouvellement"
+    REVENU_MENSUEL = "revenu_mensuel"
     CONTACT_COMMERCIAL = "contact_commercial"
 
 
@@ -156,8 +158,15 @@ EVENT_FAMILIES: Final[dict[EventType, FeatureSource]] = {
     EventType.ECHEC_PRELEVEMENT: FeatureSource.FINANCE,
     EventType.ANNULATION_ABONNEMENT: FeatureSource.FINANCE,
     EventType.DESACTIVATION_RENOUVELLEMENT: FeatureSource.FINANCE,
+    EventType.REVENU_MENSUEL: FeatureSource.FINANCE,
     EventType.CONTACT_COMMERCIAL: FeatureSource.COMMERCIAL,
 }
+
+#: Event types that record a state in force rather than something that happened.
+#: They are read at ``T0``, as the last value strictly before it, and never
+#: cumulated over a window: summing a monthly revenue over ninety days means
+#: nothing. Decision D18.
+STATE_EVENT_TYPES: Final[frozenset[EventType]] = frozenset({EventType.REVENU_MENSUEL})
 
 
 class ColumnRequirement(StrEnum):

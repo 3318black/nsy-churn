@@ -49,7 +49,8 @@ Règle de lecture, décision D2 : un chiffre obtenu sur données simulées ne va
 ### Limites assumées
 
 - K = 50 est une capacité hypothétique, KKBox n'ayant pas d'équipe commerciale.
-- **Les lignes de base n'exploitent aucune donnée d'usage.** Les 36 variables d'écoute sont constantes sur toute la grille : le journal récent couvre du 1er au 31 mars 2017, et la dernière date d'observation est le 27 février 2017. Le journal complet, 30,5 Go décompressés et déjà téléchargé, n'est pas encore extrait ; il porte le taux de complétion, signal le plus prometteur du jeu. Le 0,1628 repose donc sur les seules variables financières.
+- **Les lignes de base n'exploitent aucune donnée d'usage.** Les 36 variables d'écoute sont constantes sur toute la grille : le journal récent couvre du 1er au 31 mars 2017, et la dernière date d'observation est le 27 février 2017. Le journal complet, 30,5 Go décompressés et déjà téléchargé, n'est pas encore extrait ; il porte le taux de complétion. Le 0,1628 repose donc sur les seules variables financières. *Rectification du 13 septembre : une première version de cette phrase présentait le taux de complétion comme le signal le plus prometteur du jeu, sans mesure pour l'appuyer. C'est une hypothèse, que le lot 5 tranche.*
+- **Le revenu utilisé ici venait de la dernière transaction du compte**, postérieure à la date d'observation sur 19 % des couples. Le défaut est corrigé par la décision D18 et les trois lignes de base sont remesurées au lot 5 sur la grille corrigée. La valeur datée classant mieux que la valeur figée, cette fuite ne flattait pas le tri par revenu.
 - Certaines semaines, autour de mars et d'août 2016, affichent une précision nulle pour les trois classements à la fois. Ce comportement n'est pas expliqué à ce jour.
 - L'échantillon de 8 150 comptes est modeste au regard des 2,36 millions disponibles.
 

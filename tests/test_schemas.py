@@ -9,6 +9,7 @@ from churn.data.schemas import (
     ACCOUNTS_SCHEMA,
     EVENT_FAMILIES,
     EVENTS_SCHEMA,
+    STATE_EVENT_TYPES,
     ColumnKind,
     ColumnRequirement,
     EventType,
@@ -58,10 +59,11 @@ def test_nullable_is_distinct_from_optional() -> None:
 
 
 def test_event_nomenclature_is_closed_and_complete() -> None:
-    """The thirteen declared types, and a family for each of them."""
-    assert len(EventType) == 12
+    """The thirteen declared types, a family for each, and one state, D18."""
+    assert len(EventType) == 13
     assert set(EVENT_FAMILIES) == set(EventType)
     assert set(EVENT_FAMILIES.values()) <= set(FeatureSource)
+    assert {EventType.REVENU_MENSUEL} == STATE_EVENT_TYPES
 
 
 def test_event_type_column_carries_the_nomenclature() -> None:

@@ -14,7 +14,7 @@ Une ligne par compte client. Vision à date, sans historique de modification en 
 | `date_debut_contrat` | date | non | Date d'entrée en vigueur du contrat. Fixe l'ancienneté. |
 | `date_resiliation` | date | oui | Date de fin effective. `null` pour un compte actif. C'est la source unique de la cible. |
 | `type_contrat` | catégorie | non | Valeurs : `mensuel`, `annuel`, `pluriannuel`. |
-| `mrr` | décimal | non | Revenu mensuel récurrent en euros, positif ou nul. |
+| `mrr` | décimal | non | Revenu mensuel récurrent en euros, positif ou nul, à la date d'extraction. Ne sert ni de variable ni de ligne de base : le revenu d'un couple se lit dans le journal, voir D18. |
 | `segment` | catégorie | non | Valeurs : `TPE`, `PME`, `ETI`, `GrandCompte`. |
 | `canal_acquisition` | catégorie | non | Valeurs : `direct`, `partenaire`, `inbound`, `marketplace`. |
 | `nb_licences` | entier | non | Nombre de sièges souscrits, strictement positif. |
@@ -52,6 +52,7 @@ Une ligne par événement daté. C'est la seule source d'information comportemen
 | `echec_prelevement` | Montant en euros | Finance |
 | `annulation_abonnement` | Toujours 1, l'événement porte l'information | Finance |
 | `desactivation_renouvellement` | Toujours 1, l'événement porte l'information | Finance |
+| `revenu_mensuel` | Revenu mensuel en vigueur à partir de l'événement, en euros. Type d'état : lu à la date, jamais sommé sur une fenêtre | Finance |
 | `contact_commercial` | Durée de l'échange en minutes | Commercial |
 
 **La nomenclature est fermée mais aucune source ne la remplit entièrement.** Elle est l'union des types que les sources prévues savent produire. Le jeu KKBox n'a ni support ni contact commercial ; un jeu d'entreprise n'aura pas de taux de complétion. Le pipeline doit donc fonctionner sur un sous-ensemble, sans code conditionnel dispersé : une famille absente produit simplement moins de variables.
@@ -93,6 +94,7 @@ Un couple `(client_id, T0)` dont la fenêtre de cible dépasse la fin de l'histo
 En pratique, cela interdit les usages suivants :
 
 - utiliser `date_resiliation` dans une variable, sous quelque forme que ce soit, y compris une durée
+- lire dans le référentiel une colonne qui décrit le compte à la date d'extraction, comme `mrr`. Le revenu d'un couple est la dernière valeur de `revenu_mensuel` strictement antérieure à `T0`, voir D18
 - utiliser un événement du jour même de `T0` si l'horodatage n'est pas strictement inférieur à `T0`
 - calculer une statistique de normalisation, moyenne ou écart-type, sur l'ensemble du jeu avant le découpage temporel
 - imputer une valeur manquante à partir de statistiques calculées sur la période de test
@@ -122,6 +124,8 @@ Ces trois points ne sont pas théoriques. Ils ont été reproduits sur ce poste,
 Un test obligatoire, `tests/test_no_leakage.py`, procède ainsi : il construit les variables pour un couple `(client_id, T0)` donné, puis reconstruit les mêmes variables après avoir supprimé du journal tous les événements postérieurs ou égaux à `T0`. Les deux résultats doivent être strictement identiques.
 
 Si une seule variable diffère, elle regarde dans le futur. Le test échoue et la construction est fausse.
+
+**La troncature ne voit pas le référentiel.** Une colonne de `accounts` qui décrit le compte à la date d'extraction traverse la sentinelle sans la faire échouer. C'est ainsi que le revenu de la dernière transaction a pu alimenter la grille jusqu'au 2026-09-13. Un second test complète donc la sentinelle : il réécrit toutes les colonnes du référentiel dont aucune règle de la grille n'a besoin, et vérifie que la grille et les variables restent identiques. Voir D18.
 
 ### 3.7 Contrôle par force brute
 

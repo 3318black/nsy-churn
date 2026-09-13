@@ -19,10 +19,10 @@ import pandas as pd
 import pytest
 
 from churn.config import AppConfig
-from churn.data.schemas import Dataset
+from churn.data.schemas import Dataset, EventType
 from churn.data.synthetic import generate_dataset
 from churn.features.build import GridSpec, build_grid, build_training_set
-from churn.features.windows import build_window_features
+from churn.features.windows import build_window_features, read_state_at
 
 #: Observation dates the sentinel checks. Each one covers every account of the
 #: grid at that date, so the fifty pairs of the acceptance criterion are widely
@@ -102,6 +102,42 @@ def test_features_ignore_everything_at_or_after_t0(dataset: Dataset, spec: GridS
         )
         checked += len(rows)
     assert checked >= 50
+
+
+def test_the_revenue_ignores_everything_at_or_after_t0(dataset: Dataset, spec: GridSpec) -> None:
+    """The sentinel applied to the revenue in force, read from the journal."""
+    known = 0
+    for date, rows in _sentinel_pairs(dataset, spec):
+        truncated = dataset.events.loc[dataset.events["event_ts"] < date]
+        complete = read_state_at(rows, dataset.events, EventType.REVENU_MENSUEL.value)
+        partial = read_state_at(rows, truncated, EventType.REVENU_MENSUEL.value)
+        pd.testing.assert_series_equal(complete, partial)
+        known += int(complete.notna().sum())
+    assert known >= 50, "too few known revenues for the check to mean anything"
+
+
+def test_the_reference_table_never_reaches_the_training_set(
+    dataset: Dataset, spec: GridSpec
+) -> None:
+    """The leak found on 2026-09-13, decision D18.
+
+    The sentinel above truncates the journal, so it cannot see a column of the
+    reference that describes the account at extraction time. On KKBox the revenue
+    of the reference came from the last transaction, and it differed from the
+    revenue in force at T0 on 19% of the grid rows. Rewriting every column of the
+    reference that no rule of the grid needs must change nothing.
+    """
+    accounts = dataset.accounts.assign(
+        mrr=dataset.accounts["mrr"] * 7 + 13,
+        type_contrat="pluriannuel",
+        segment="TPE",
+        canal_acquisition="marketplace",
+        nb_licences=1,
+    )
+    original = build_training_set(dataset, spec)
+    altered = build_training_set(Dataset(accounts=accounts, events=dataset.events), spec)
+    pd.testing.assert_frame_equal(original.grid, altered.grid)
+    pd.testing.assert_frame_equal(original.features, altered.features)
 
 
 def test_an_event_exactly_on_t0_is_excluded(dataset: Dataset, spec: GridSpec) -> None:

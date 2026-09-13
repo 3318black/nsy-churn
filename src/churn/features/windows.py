@@ -37,7 +37,7 @@ from collections.abc import Sequence
 import numpy as np
 import pandas as pd
 
-from churn.data.schemas import DatetimeResolution, EventType
+from churn.data.schemas import STATE_EVENT_TYPES, DatetimeResolution, EventType
 
 __all__ = [
     "AggregateKind",
@@ -45,6 +45,7 @@ __all__ = [
     "build_window_features",
     "cumulative_journal",
     "read_at_bound",
+    "read_state_at",
 ]
 
 #: Suffix separating a feature name from the window it covers.
@@ -166,6 +167,63 @@ def read_at_bound(
     return merged[list(measure_columns)].fillna(0.0)
 
 
+def read_state_at(
+    grid: pd.DataFrame,
+    events: pd.DataFrame,
+    event_type: str,
+    resolution: DatetimeResolution = "us",
+) -> pd.Series:
+    """Read the value of a state in force strictly before ``T0``, per grid row.
+
+    A state is not cumulated: the value in force at ``T0`` is the one carried by
+    the last event before it. The traps of ``merge_asof`` apply all the same and
+    are handled the same way. Several values on one instant are resolved by their
+    maximum, so the result never depends on the order rows arrive in. An event
+    without payload is skipped, since it does not erase the last known state.
+
+    Args:
+        grid: the observation grid, with ``client_id`` and ``T0``.
+        events: the contract event journal.
+        event_type: the state to read, one of the state event types.
+        resolution: timestamp resolution.
+
+    Returns:
+        The state of each grid row, in grid order, ``NaN`` where none was known.
+    """
+    states = events.loc[
+        (events["event_type"] == event_type) & events["event_value"].notna(),
+        ["client_id", "event_ts", "event_value"],
+    ]
+    if grid.empty or states.empty:
+        return pd.Series(np.nan, index=grid.index, dtype="float64", name=event_type)
+
+    states = states.assign(event_ts=states["event_ts"].dt.as_unit(resolution))
+    per_instant = (
+        states.groupby(["client_id", "event_ts"], sort=True)["event_value"]
+        .max()
+        .reset_index()
+        .sort_values("event_ts", kind="stable", ignore_index=True)
+    )
+    bounds = grid[["client_id"]].copy()
+    bounds["bound"] = grid["T0"].dt.as_unit(resolution)
+    # Explicit order column, for the same reason as in ``read_at_bound``.
+    bounds["_row"] = np.arange(len(bounds))
+    bounds = bounds.sort_values("bound", kind="stable", ignore_index=True)
+
+    merged = pd.merge_asof(
+        bounds,
+        per_instant,
+        left_on="bound",
+        right_on="event_ts",
+        by="client_id",
+        direction="backward",
+        allow_exact_matches=False,
+    ).sort_values("_row", kind="stable", ignore_index=True)
+    return pd.Series(
+        merged["event_value"].to_numpy(dtype="float64"), index=grid.index, name=event_type
+    )
+
+
 def build_window_features(
     grid: pd.DataFrame,
     events: pd.DataFrame,
@@ -180,14 +238,18 @@ def build_window_features(
         events: the contract event journal.
         windows_days: window lengths, in days.
         event_types: families to cover. Defaults to those present in ``events``,
-            since no source fills the whole nomenclature.
+            since no source fills the whole nomenclature, states excluded: a
+            state is read at ``T0`` by :func:`read_state_at`, never summed.
         resolution: timestamp resolution.
 
     Returns:
         The features, one row per grid row, in grid order.
     """
     if event_types is None:
-        event_types = sorted(set(events["event_type"]) & {member.value for member in EventType})
+        flows = {member.value for member in EventType} - {
+            member.value for member in STATE_EVENT_TYPES
+        }
+        event_types = sorted(set(events["event_type"]) & flows)
     if not event_types or grid.empty:
         return pd.DataFrame(index=grid.index)
 

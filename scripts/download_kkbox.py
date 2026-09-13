@@ -141,9 +141,28 @@ def decompress(archive: Path, destination: Path) -> None:
         destination: directory the content lands in.
     """
     expected = archive.name.removesuffix(".7z")
-    if any(destination.rglob(expected)):
+    # Presence alone is not enough: an extraction interrupted halfway leaves a
+    # file on disk, and it would be taken for a complete one. Its size is
+    # checked against the size the archive declares.
+    with py7zr.SevenZipFile(archive, "r") as opened:
+        declared = {
+            Path(info.filename).name: info.uncompressed
+            for info in opened.list()
+            if not info.is_directory
+        }
+    present = sorted(destination.rglob(expected))
+    if present and present[0].stat().st_size == declared.get(expected):
         logger.info("already decompressed", extra={"archive": archive.name})
         return
+    if present:
+        logger.warning(
+            "incomplete extraction found, extracting again",
+            extra={
+                "archive": archive.name,
+                "bytes_on_disk": present[0].stat().st_size,
+                "bytes_declared": declared.get(expected),
+            },
+        )
 
     logger.info("decompressing", extra={"archive": archive.name})
     started = time.monotonic()

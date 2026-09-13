@@ -426,6 +426,17 @@ def generate_dataset(
             EventType.DESACTIVATION_MODULE,
             constant(1.0),
         ),
+        # The revenue in force, emitted once at the start of the contract. A pair
+        # reads its revenue from the journal at T0, never from the reference
+        # table, which describes the account at extraction time. Decision D18.
+        pd.DataFrame(
+            {
+                "client_id": accounts["client_id"].to_numpy(),
+                "event_ts": accounts["date_debut_contrat"].to_numpy(),
+                "event_type": EventType.REVENU_MENSUEL.value,
+                "event_value": accounts["mrr"].to_numpy(),
+            }
+        ),
     ]
     events = pd.concat([part for part in parts if not part.empty], ignore_index=True)
 

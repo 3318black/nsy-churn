@@ -65,6 +65,64 @@ def _events_between(start: str, end: str) -> pd.DataFrame:
     )
 
 
+def _revenue(stamps: list[str], values: list[float]) -> pd.DataFrame:
+    """Return revenue events of account A."""
+    return pd.DataFrame(
+        {
+            "client_id": ["A"] * len(stamps),
+            "event_ts": pd.to_datetime(stamps, utc=True).as_unit("us"),
+            "event_type": ["revenu_mensuel"] * len(stamps),
+            "event_value": values,
+        }
+    )
+
+
+def test_the_revenue_of_a_pair_is_the_one_in_force_before_t0(spec: GridSpec) -> None:
+    """Decision D18: the reference describes the account at extraction time.
+
+    The account is worth 999 in the reference, 100 until 2 June 2025 and 250
+    afterwards. A pair observed on 2 June itself still reads 100, since the
+    change happens on T0 and not strictly before it.
+    """
+    accounts = _one_account("2024-06-01").assign(mrr=999.0)
+    events = pd.concat(
+        [
+            _events_between("2024-06-01", "2025-12-31"),
+            _revenue(["2024-06-01", "2025-06-02"], [100.0, 250.0]),
+        ],
+        ignore_index=True,
+    )
+    grid = build_grid(_dataset_of(accounts, events), spec)
+    change = pd.Timestamp("2025-06-02", tz="UTC")
+    assert (grid["T0"] == change).any(), "the strict bound must be exercised"
+    assert (grid.loc[grid["T0"] <= change, "mrr"] == 100.0).all()
+    assert (grid.loc[grid["T0"] > change, "mrr"] == 250.0).all()
+
+
+def test_several_revenues_on_one_instant_resolve_to_the_maximum(spec: GridSpec) -> None:
+    """The result never depends on the order rows arrive in."""
+    accounts = _one_account("2024-06-01")
+    events = pd.concat(
+        [
+            _events_between("2024-06-01", "2025-12-31"),
+            _revenue(["2024-06-01", "2024-06-01"], [300.0, 100.0]),
+        ],
+        ignore_index=True,
+    )
+    grid = build_grid(_dataset_of(accounts, events), spec)
+    assert not grid.empty
+    assert (grid["mrr"] == 300.0).all()
+
+
+def test_an_account_without_known_revenue_carries_zero(spec: GridSpec) -> None:
+    """Nothing billed so far is a fact, not a gap to fill from the reference."""
+    grid = build_grid(
+        _dataset_of(_one_account("2024-06-01"), _events_between("2024-06-01", "2025-12-31")), spec
+    )
+    assert not grid.empty
+    assert (grid["mrr"] == 0.0).all()
+
+
 def test_the_grid_carries_the_expected_columns(dataset: Dataset, spec: GridSpec) -> None:
     """The grid holds the identity, the date, the target and what evaluation needs."""
     grid = build_grid(dataset, spec)

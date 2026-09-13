@@ -55,6 +55,7 @@ __all__ = [
     "build_accounts",
     "build_events",
     "load_transactions",
+    "monthly_revenue",
     "read_in_chunks",
     "sample_account_ids",
 ]
@@ -108,6 +109,24 @@ MULTIYEAR_PLAN_MAX_DAYS = 180
 
 #: Days a monthly revenue is normalised on.
 MONTHLY_BASIS_DAYS = 30
+
+
+def monthly_revenue(list_price: pd.Series, plan_days: pd.Series) -> pd.Series:
+    """Bring a plan price back to thirty days.
+
+    A 410 day plan at 1788 is not a monthly revenue of 1788. A missing plan
+    length counts as a month, and a length of zero as one day, so the division
+    never explodes.
+
+    Args:
+        list_price: listed price of each plan.
+        plan_days: length of each plan, in days.
+
+    Returns:
+        The monthly revenue, rounded to the cent and never negative.
+    """
+    days = plan_days.fillna(MONTHLY_BASIS_DAYS).clip(lower=1)
+    return (list_price.fillna(0.0) / days * MONTHLY_BASIS_DAYS).round(2).clip(lower=0.0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -331,6 +350,12 @@ def build_accounts(
             extra={"column": column, "reason": reason, "loaded": column in members.columns},
         )
 
+    # The reference describes each account at extraction time, so its revenue and
+    # contract type come from the last transaction. Neither may feed a pair
+    # observed earlier: a pair reads its revenue from the ``revenu_mensuel``
+    # events, as known strictly before T0. Measured on 2026-09-13, the value of
+    # the last transaction differed from the one in force at T0 on 19% of the
+    # grid rows. Decision D18.
     plans = (
         transactions.sort_values(["msno", "transaction_date"])
         .groupby("msno", sort=False)[["payment_plan_days", "plan_list_price"]]
@@ -339,12 +364,8 @@ def build_accounts(
     accounts = members.loc[members["msno"].isin(transactions["msno"].unique())].copy()
     accounts = accounts.join(plans, on="msno")
 
-    days = accounts["payment_plan_days"].fillna(30).clip(lower=1)
-    accounts["mrr"] = (
-        (accounts["plan_list_price"].fillna(0.0) / days * MONTHLY_BASIS_DAYS)
-        .round(2)
-        .clip(lower=0.0)
-    )
+    days = accounts["payment_plan_days"].fillna(MONTHLY_BASIS_DAYS).clip(lower=1)
+    accounts["mrr"] = monthly_revenue(accounts["plan_list_price"], accounts["payment_plan_days"])
     accounts["type_contrat"] = np.select(
         [days <= MONTHLY_PLAN_MAX_DAYS, days <= MULTIYEAR_PLAN_MAX_DAYS],
         [ContractType.MENSUEL.value, ContractType.PLURIANNUEL.value],
@@ -423,6 +444,12 @@ def _events_from_transactions(transactions: pd.DataFrame) -> pd.DataFrame:
         ),
         base.loc[auto_renew_off.to_numpy()].assign(
             event_type=EventType.DESACTIVATION_RENOUVELLEMENT.value, event_value=1.0
+        ),
+        base.assign(
+            event_type=EventType.REVENU_MENSUEL.value,
+            event_value=monthly_revenue(
+                transactions["plan_list_price"], transactions["payment_plan_days"]
+            ).to_numpy(),
         ),
     ]
     return pd.concat(parts, ignore_index=True)

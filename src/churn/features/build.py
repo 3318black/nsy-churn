@@ -22,6 +22,12 @@ The central rule of the module, and of the project: a feature computed for
 ``(client_id, T0)`` uses only events strictly earlier than ``T0``, and no column
 of the reference table that postdates it. The sentinel of
 ``tests/test_no_leakage.py`` checks it by reconstruction.
+
+**The revenue of a pair is read from the journal, never from the reference.**
+The reference describes each account at extraction time. On KKBox its revenue
+comes from the last transaction, and on 2026-09-13 it differed from the revenue
+in force at ``T0`` on 19% of the grid rows. The sentinel could not see it, since
+it truncates the journal and not the reference. Decision D18.
 """
 
 from __future__ import annotations
@@ -32,8 +38,8 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 
-from churn.data.schemas import Dataset, DatetimeResolution
-from churn.features.windows import build_window_features
+from churn.data.schemas import Dataset, DatetimeResolution, EventType
+from churn.features.windows import build_window_features, read_state_at
 
 __all__ = ["GridSpec", "TrainingSet", "build_grid", "build_training_set"]
 
@@ -116,7 +122,7 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
         [accounts["client_id"].to_numpy(), dates], names=["client_id", "T0"]
     ).to_frame(index=False)
     grid = grid.join(
-        accounts.set_index("client_id")[["date_debut_contrat", "date_resiliation", "mrr"]],
+        accounts.set_index("client_id")[["date_debut_contrat", "date_resiliation"]],
         on="client_id",
     )
 
@@ -143,6 +149,11 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
         & (ended.loc[grid.index] > grid["T0"])
         & (ended.loc[grid.index] <= grid["T0"] + horizon)
     ).astype("int64")
+    # Revenue in force strictly before T0. An account without any known revenue
+    # yet carries zero, which is the fact: nothing has been billed so far.
+    grid["mrr"] = read_state_at(
+        grid, dataset.events, EventType.REVENU_MENSUEL.value, spec.resolution
+    ).fillna(0.0)
 
     return grid.loc[:, ["client_id", "T0", "y", "mrr"]].sort_values(
         ["T0", "client_id"], kind="stable", ignore_index=True
@@ -169,8 +180,9 @@ def build_training_set(dataset: Dataset, spec: GridSpec) -> TrainingSet:
         spec.windows_days,
         resolution=spec.resolution,
     )
-    # Structural columns of the reference table. They are known at ``T0`` and
-    # carry no future: the age is a difference against ``T0`` itself.
+    # Structural columns. They are known at ``T0`` and carry no future: the age
+    # is a difference against ``T0`` itself, and the revenue was read from the
+    # journal strictly before ``T0`` by ``build_grid``.
     started = (
         dataset.accounts.set_index("client_id")["date_debut_contrat"]
         .reindex(grid["client_id"])

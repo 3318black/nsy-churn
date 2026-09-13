@@ -89,7 +89,7 @@ Le débit observé est d'environ 5 Mo par seconde.
 
 Ce socle suffit à reconstruire la cible sur toute la période, à la valider contre l'étiquette officielle, à construire l'intégralité des variables `FINANCE` et à entraîner un premier modèle complet. Autrement dit, il couvre le critère central du lot 2 et permet d'aller jusqu'au lot 6.
 
-**Enrichissement, environ 7,8 Go et une demi-heure** : `user_logs_v2.csv.7z` puis `user_logs.csv.7z`. Ils apportent les variables `PRODUCT`, dont le taux de complétion qui porte le signal le plus intéressant du jeu. Ils ne conditionnent aucun critère d'acceptation antérieur au lot 3.
+**Enrichissement, environ 7,8 Go et une demi-heure** : `user_logs_v2.csv.7z` puis `user_logs.csv.7z`. Ils apportent les variables `PRODUCT`, dont le taux de complétion. Ils ne conditionnent aucun critère d'acceptation antérieur au lot 3.
 
 **Échantillonnage obligatoire.** Un tirage aléatoire de comptes est effectué en premier, parmi les comptes présents dans les transactions comme expliqué en 2.3, puis les fichiers sont filtrés sur cet échantillon. Les journaux d'écoute se lisent par morceaux, jamais en une fois. La taille d'échantillon par défaut est fixée dans `config.yaml`, à 50 000 comptes.
 
@@ -103,7 +103,7 @@ Ce socle suffit à reconstruire la cible sur toute la période, à la valider co
 | `date_debut_contrat` | `registration_init_time` | Entier `AAAAMMJJ` à convertir en date |
 | `date_resiliation` | dérivée des transactions | Voir section 5 |
 | `type_contrat` | `payment_plan_days` | 30 jours donne `mensuel`, 90 donne `trimestriel`, 365 et plus donne `annuel` |
-| `mrr` | `plan_list_price`, `payment_plan_days` | Ramené à une base de 30 jours |
+| `mrr` | `plan_list_price`, `payment_plan_days` de la dernière transaction | Ramené à une base de 30 jours. Décrit le compte à la date d'extraction : ni variable ni ligne de base, voir D18 |
 | `segment` | `city` | Codes de ville traités comme catégorie, sans interprétation géographique |
 | `canal_acquisition` | `registered_via` | Codes de canal repris tels quels |
 | `nb_licences` | absent | Colonne optionnelle, non renseignée pour cette source |
@@ -125,10 +125,13 @@ Ce socle suffit à reconstruire la cible sur toute la période, à la valider co
 | `echec_prelevement` | `transactions`, lignes où `actual_amount_paid < plan_list_price` | Montant de l'écart |
 | `annulation_abonnement` | `transactions`, lignes où `is_cancel = 1` | 1 |
 | `desactivation_renouvellement` | `transactions`, passage de `is_auto_renew` de 1 à 0 | 1 |
+| `revenu_mensuel` | `transactions`, une ligne par transaction | `plan_list_price` ramené à 30 jours par `payment_plan_days`. État lu à `T0`, jamais sommé, voir D18 |
+
+**Revenu daté plutôt que figé, mesuré le 13 septembre 2026.** Sur l'échantillon de 8 150 comptes, 42 % ont connu plus d'un revenu mensuel au cours de l'historique. Le revenu de la dernière transaction différait de celui en vigueur à la date d'observation sur 19 % des couples. C'est pourquoi chaque transaction émet un événement `revenu_mensuel`, et le revenu d'un couple se lit dans le journal.
 
 **Absence assumée :** ce jeu ne comporte ni tickets support ni contact commercial. Les catégories `SUPPORT` et `COMMERCIAL` du fichier de correspondance disparaissent pour cette source. Le pipeline doit fonctionner avec un sous-ensemble de catégories, sans code conditionnel dispersé.
 
-Le taux de complétion est le signal le plus intéressant du jeu. Un utilisateur qui passe d'une majorité de morceaux écoutés en entier à une majorité de morceaux abandonnés avant 25 % se désengage, même si son temps d'écoute total ne bouge pas. C'est exactement le type de variable de tendance que le lot 3 doit produire.
+Le taux de complétion est une hypothèse de signal, à confirmer par la mesure du lot 5 : les transactions pourraient rester dominantes sur ce jeu. Un utilisateur qui passe d'une majorité de morceaux écoutés en entier à une majorité de morceaux abandonnés avant 25 % se désengage, même si son temps d'écoute total ne bouge pas. C'est exactement le type de variable de tendance que le lot 3 doit produire.
 
 ## 5. Construction de la cible, et pourquoi on ne prend pas l'étiquette fournie
 

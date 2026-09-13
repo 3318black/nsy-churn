@@ -203,7 +203,7 @@ def test_real_feature_mapping_loads(config: AppConfig) -> None:
 
     assert mapping
     assert all(isinstance(entry.source, FeatureSource) for entry in mapping.values())
-    assert mapping["nb_connexions_30j"].source is FeatureSource.PRODUCT
+    assert mapping["connexion"].source is FeatureSource.PRODUCT
     assert mapping["anciennete_jours"].action == ""
 
 

@@ -13,9 +13,11 @@ data/processed/*
 data/exports/*
 !data/**/.gitkeep
 
-# Modeles serialises et rapports generes
-models/
-reports/
+# Modeles serialises et rapports generes. Motifs ancres a la racine : un motif
+# nu comme models/ exclut tout dossier de ce nom, y compris le paquet
+# src/churn/models/, qui serait reste hors du depot sans aucune erreur.
+/models/
+/reports/
 *.pkl
 *.joblib
 *.ubj

@@ -4,7 +4,7 @@ Moteur de prédiction de résiliation client. À une date donnée, il classe les
 
 ## État du projet
 
-Cadrage terminé le 7 septembre 2026. Implémentation non démarrée.
+Cadrage terminé le 7 septembre 2026. Lots 0 à 4 livrés : socle, contrat de données, adaptateur KKBox, jeu d'apprentissage sans fuite et protocole d'évaluation. Lot 5, modélisation et explicabilité, en cours.
 
 Ce README sera réécrit au dernier lot, une fois les résultats disponibles. Le plan imposé figure au lot 8 de la roadmap.
 
@@ -35,7 +35,8 @@ Les données brutes ne sont pas versionnées.
 | Fichier | Contenu |
 | :--- | :--- |
 | `AGENTS.md` | Manuel opératoire de l'agent développeur. Point d'entrée. |
-| `docs/decisions.md` | Décisions closes, de D1 à D17, et points ouverts. |
+| `docs/decisions.md` | Décisions closes, de D1 à D18, et points ouverts. |
+| `docs/cours/` | Un cours par lot livré : ce qui a été fait, pourquoi et comment, expliqué à un débutant. |
 | `docs/data-contract.md` | Tables d'entrée, construction du jeu d'apprentissage, règle de non-fuite, pièges mesurés, schéma de sortie. |
 | `docs/dataset-kkbox.md` | Projection du jeu KKBox sur le contrat et reconstruction de la cible. |
 | `docs/roadmap.md` | Neuf lots, avec critères d'acceptation. |
