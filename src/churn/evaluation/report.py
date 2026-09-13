@@ -83,7 +83,7 @@ def write_evaluation_report(
     lines = [
         f"> {banner}",
         "",
-        "# Evaluation of the baselines",
+        "# Evaluation of the rankings",
         "",
         f"Produced on {datetime.now(UTC):%Y-%m-%d %H:%M} UTC.",
         "",

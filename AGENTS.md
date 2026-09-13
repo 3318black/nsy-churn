@@ -77,7 +77,7 @@ Production : `pandas`, `numpy`, `scikit-learn`, `xgboost`, `pydantic`, `pyarrow`
 
 ## 5. Décisions déjà prises
 
-Elles sont dans `docs/decisions.md`, de D1 à D16. Les six qui cassent le plus souvent une implémentation :
+Elles sont dans `docs/decisions.md`, de D1 à D18. Les sept qui cassent le plus souvent une implémentation :
 
 - **D4** : découpage temporel avec embargo au moins égal à l'horizon. Jamais de `train_test_split` aléatoire sur ces données.
 - **D5** : `Precision@K` se calcule par période de scoring, puis se moyenne. Ce n'est pas un top K global.
@@ -85,6 +85,7 @@ Elles sont dans `docs/decisions.md`, de D1 à D16. Les six qui cassent le plus s
 - **D7** : les contributions sont sommées par variable d'origine avant l'extraction du top 3.
 - **D13** : agrégation par `(client_id, event_ts)` obligatoire avant tout `merge_asof`, plus le contrôle par force brute.
 - **D16** : cinq points ne se sacrifient jamais pour tenir le calendrier. Ils y sont listés.
+- **D18** : le revenu d'un couple se lit dans le journal, par `revenu_mensuel` avant `T0`, jamais dans le référentiel, qui décrit le compte à la date d'extraction.
 
 Si une consigne de tâche contredit une de ces décisions, arrête-toi et signale la contradiction. Ne tranche pas seul.
 
@@ -110,7 +111,8 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `data/sources.py` | Lecture depuis une source, derrière une interface | Ne calcule aucune variable |
 | `data/kkbox.py` | Projection du jeu KKBox sur le contrat | N'assouplit jamais le contrat |
 | `data/target.py` | Reconstruction de la cible depuis les transactions | Ne construit aucune variable explicative |
-| `features/windows.py` | Agrégations sur fenêtres glissantes | N'accède pas à la cible |
+| `features/windows.py` | Agrégations sur fenêtres glissantes, lecture d'un état à `T0` | N'accède pas à la cible |
+| `features/catalog.py` | Variable d'origine et famille de chaque colonne | Ne calcule aucune variable |
 | `features/build.py` | Grille, cible, matrice de variables | Ne modélise pas |
 | `evaluation/splitting.py` | Découpage temporel avec embargo et purge | N'entraîne rien |
 | `evaluation/metrics.py` | Métriques de tête de liste | Ne trace aucun graphique |
@@ -154,6 +156,8 @@ Trois sections, courtes.
 3. **Ce qui demande ton attention**, hypothèses prises, dette introduite, points restés ouverts
 
 Un test qui échoue se rapporte tel quel, avec sa sortie. Une étape sautée se signale. Ne présente jamais comme vérifié ce qui ne l'a pas été.
+
+**Document de cours, obligatoire à chaque lot.** Chaque lot livré s'accompagne d'un fichier `docs/cours/lot-<n>-<sujet>.md`, versé dans la même pull request que le code. Il explique ce qui a été fait, pourquoi et comment, rédigé comme un cours donné à un débutant : le problème de départ, chaque notion définie à sa première apparition, les vrais chiffres du projet, les erreurs rencontrées et ce qu'elles ont appris. Les règles d'écriture sont dans `docs/cours/README.md`. Consigne du propriétaire du projet, posée le 2026-09-13.
 
 ---
 

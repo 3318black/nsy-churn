@@ -72,21 +72,26 @@ def evaluate_scorers(
     period_frames: list[pd.DataFrame] = []
 
     for fold in folds:
-        train_features = training.features.iloc[fold.train_index]
-        train_target = training.target.iloc[fold.train_index]
+        train = TrainingSet(
+            grid=training.grid.iloc[fold.train_index],
+            target=training.target.iloc[fold.train_index],
+            features=training.features.iloc[fold.train_index],
+        )
         test_features = training.features.iloc[fold.test_index]
         test_grid = training.grid.iloc[fold.test_index]
-        train_positives = int(train_target.sum())
-        if train_target.nunique() < _BINARY_CLASSES:
+        train_positives = int(train.target.sum())
+        if train.target.nunique() < _BINARY_CLASSES:
             message = (
-                f"fold {fold.index} trains on {len(train_target)} rows holding a single "
+                f"fold {fold.index} trains on {len(train.target)} rows holding a single "
                 f"class ({train_positives} positives): every comparison on it would be "
                 f"meaningless"
             )
             raise ValueError(message)
+        # The test target never reaches a scorer, not even through the grid.
+        blind_grid = test_grid.drop(columns="y")
 
         for scorer in scorers:
-            scores = scorer.fit_score(train_features, train_target, test_features, test_grid)
+            scores = scorer.fit_score(train, test_features, blind_grid)
             ranking = test_grid[["T0", "client_id", "mrr", "y"]].assign(score=scores)
             fold_rows.append(
                 {

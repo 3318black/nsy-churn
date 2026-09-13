@@ -141,6 +141,13 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `src/churn/models/train.py`, entraînement et grille d'hyperparamètres réduite, décision D16
 - `src/churn/models/explain.py`, contributions natives `pred_contribs` de XGBoost, agrégation par variable d'origine, extraction des trois facteurs
 - `src/churn/models/registry.py`, sérialisation avec métadonnées : version, graine, seuil de signification, empreinte du jeu d'entraînement
+- `src/churn/features/catalog.py`, variable d'origine et famille de chaque colonne, dont dépendent l'agrégation des contributions et la mesure par famille
+- `scripts/train_model.py`, comparaison du modèle aux lignes de base dans le protocole du lot 4, puis entraînement, sauvegarde et explication de la dernière période
+- `docs/cours/lot-5-modelisation.md`, le document de cours du lot
+
+**Préalable découvert au démarrage, décision D18.** Le revenu utilisé comme variable et comme ligne de base venait de la dernière transaction du compte, différente du revenu en vigueur à `T0` sur 22,5 % des lignes de la grille. Il est désormais lu dans le journal, par l'événement `revenu_mensuel`, et les lignes de base sont remesurées sur la grille corrigée.
+
+**Deux mesures, deux questions.** Le gain du modèle se mesure à variables égales, régression logistique contre XGBoost sur la seule famille financière. Le gain des données se mesure à modèle égal, XGBoost avec et sans la famille d'usage issue du journal d'écoute complet.
 
 **Critères d'acceptation**
 

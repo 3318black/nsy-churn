@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from churn.config import AppConfig
+from churn.config import AppConfig, FeatureSource
 from churn.data.synthetic import generate_dataset
 from churn.evaluation.baselines import (
     LogisticScorer,
@@ -20,6 +20,7 @@ from churn.evaluation.protocol import evaluate_scorers, summarise
 from churn.evaluation.report import source_banner, write_evaluation_report
 from churn.evaluation.splitting import temporal_folds
 from churn.features.build import GridSpec, TrainingSet, build_training_set
+from churn.features.catalog import select_families
 
 
 @pytest.fixture(scope="module")
@@ -38,60 +39,79 @@ def training(config: AppConfig) -> TrainingSet:
     return build_training_set(dataset, spec)
 
 
-def _toy() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.DataFrame]:
-    """Return a tiny separable problem."""
+def _toy() -> tuple[TrainingSet, pd.DataFrame, pd.DataFrame]:
+    """Return a tiny separable problem: training rows, test features, test grid."""
     rng = np.random.default_rng(1)
-    train = pd.DataFrame({"a": rng.normal(size=200), "b": rng.normal(10.0, 5.0, size=200)})
-    target = pd.Series((train["a"] > 0).astype(int))
+    features = pd.DataFrame({"a": rng.normal(size=200), "b": rng.normal(10.0, 5.0, size=200)})
+    train = TrainingSet(
+        grid=pd.DataFrame({"mrr": np.linspace(1.0, 50.0, 200)}),
+        target=pd.Series((features["a"] > 0).astype(int)),
+        features=features,
+    )
     test = pd.DataFrame({"a": [-2.0, 2.0], "b": [10.0, 10.0]})
     grid = pd.DataFrame({"mrr": [5.0, 9.0]})
-    return train, target, test, grid
+    return train, test, grid
 
 
 def test_random_scores_are_reproducible() -> None:
     """Same seed, same ranking."""
-    train, target, test, grid = _toy()
-    first = RandomScorer(7).fit_score(train, target, test, grid)
-    second = RandomScorer(7).fit_score(train, target, test, grid)
+    train, test, grid = _toy()
+    first = RandomScorer(7).fit_score(train, test, grid)
+    second = RandomScorer(7).fit_score(train, test, grid)
     assert np.array_equal(first, second)
 
 
 def test_revenue_scores_are_the_revenue() -> None:
     """The tool less salesperson calls the biggest accounts first."""
-    train, target, test, grid = _toy()
-    assert list(RevenueScorer().fit_score(train, target, test, grid)) == [5.0, 9.0]
+    train, test, grid = _toy()
+    assert list(RevenueScorer().fit_score(train, test, grid)) == [5.0, 9.0]
 
 
 def test_logistic_learns_a_separable_signal() -> None:
     """Sanity check that the baseline is a real model."""
-    train, target, test, grid = _toy()
-    scores = LogisticScorer().fit_score(train, target, test, grid)
+    train, test, grid = _toy()
+    scores = LogisticScorer().fit_score(train, test, grid)
     assert scores[1] > scores[0]
 
 
 def test_the_scaler_is_fitted_on_training_rows_only() -> None:
     """Normalising on the whole grid before splitting is a leak, contract 3.3."""
-    train, target, test, grid = _toy()
+    train, test, grid = _toy()
     scorer = LogisticScorer()
-    scorer.fit_score(train, target, test.assign(b=1_000.0), grid)
+    scorer.fit_score(train, test.assign(b=1_000.0), grid)
     assert scorer.pipeline is not None
     scaler = scorer.pipeline.named_steps["standardscaler"]
-    assert scaler.mean_[1] == pytest.approx(train["b"].mean())
+    assert scaler.mean_[1] == pytest.approx(train.features["b"].mean())
 
 
 def test_infinite_features_do_not_break_the_solver() -> None:
     """A trend over a zero denominator must not crash the baseline."""
-    train, target, test, grid = _toy()
-    train.loc[0, "b"] = np.inf
-    scores = LogisticScorer().fit_score(train, target, test, grid)
+    train, test, grid = _toy()
+    train.features.loc[0, "b"] = np.inf
+    scores = LogisticScorer().fit_score(train, test, grid)
     assert np.isfinite(scores).all()
 
 
 def test_a_single_class_fold_yields_constant_scores() -> None:
     """Nothing to learn is reported, not crashed on."""
-    train, _, test, grid = _toy()
-    scores = LogisticScorer().fit_score(train, pd.Series([0] * len(train)), test, grid)
+    train, test, grid = _toy()
+    negatives = train._replace(target=pd.Series([0] * len(train.target)))
+    scores = LogisticScorer().fit_score(negatives, test, grid)
     assert (scores == 0).all()
+
+
+def test_a_logistic_restricted_to_finance_never_sees_the_other_families(
+    training: TrainingSet,
+) -> None:
+    """The ablation of lot 5 compares families, so the restriction must hold."""
+    families = {FeatureSource.FINANCE, FeatureSource.GENERAL}
+    scorer = LogisticScorer(families=families, name="logistic_finance")
+    head = training.grid.head(5).drop(columns="y")
+    scorer.fit_score(training, training.features.head(5), head)
+    assert scorer.name == "logistic_finance"
+    assert scorer.pipeline is not None
+    expected = select_families(training.features, families).shape[1]
+    assert scorer.pipeline.n_features_in_ == expected < training.features.shape[1]
 
 
 def test_the_protocol_evaluates_every_scorer_on_every_fold(
@@ -118,6 +138,32 @@ def test_the_protocol_evaluates_every_scorer_on_every_fold(
     summary = summarise(result)
     assert "lift_vs_revenue" in summary.columns
     assert summary.set_index("scorer").loc["revenue", "lift_vs_revenue"] == pytest.approx(1.0)
+
+
+class _SpyScorer:
+    """Records what the protocol hands to a scorer."""
+
+    name = "spy"
+
+    def __init__(self) -> None:
+        self.test_grid_columns: set[str] = set()
+
+    def fit_score(
+        self, train: TrainingSet, test_features: pd.DataFrame, test_grid: pd.DataFrame
+    ) -> np.ndarray:
+        del train
+        self.test_grid_columns |= set(test_grid.columns)
+        return np.zeros(len(test_features))
+
+
+def test_the_test_target_never_reaches_a_scorer(training: TrainingSet, config: AppConfig) -> None:
+    """A scorer handed the test grid with its target could read the answer."""
+    profile = config.sources.synthetic
+    folds = temporal_folds(training.grid["T0"], 2, profile.horizon_days, profile.embargo_days)
+    spy = _SpyScorer()
+    evaluate_scorers(training, folds, [spy], k=10, frequency="W-MON")
+    assert spy.test_grid_columns
+    assert "y" not in spy.test_grid_columns
 
 
 def test_every_report_states_its_source(

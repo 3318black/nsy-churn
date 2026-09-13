@@ -13,16 +13,18 @@ Logistic regression
     What does a simple, regularised linear model achieve on the same features?
     If a tree ensemble does not clearly beat it, its cost is not justified.
 
-A scorer receives the training rows and the test rows of one fold and returns one
-score per test row. It fits on training rows only, **normalisation included**:
-the scaler lives inside the pipeline, so its mean and deviation are learned on
-the past alone. Computing them on the whole grid before splitting is one of the
-leaks listed in section 3.3 of the data contract.
+A scorer receives the training rows of one fold, whole, and the test rows
+without their target, and returns one score per test row. It fits on training
+rows only, **normalisation included**: the scaler lives inside the pipeline, so
+its mean and deviation are learned on the past alone. Computing them on the whole
+grid before splitting is one of the leaks listed in section 3.3 of the data
+contract.
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
 from typing import Protocol
 
 import numpy as np
@@ -30,6 +32,10 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
+
+from churn.config import FeatureSource
+from churn.features.build import TrainingSet
+from churn.features.catalog import select_families
 
 __all__ = [
     "LogisticScorer",
@@ -52,12 +58,20 @@ class Scorer(Protocol):
 
     def fit_score(
         self,
-        train_features: pd.DataFrame,
-        train_target: pd.Series,
+        train: TrainingSet,
         test_features: pd.DataFrame,
         test_grid: pd.DataFrame,
     ) -> np.ndarray:
-        """Fit on the training rows and return one score per test row."""
+        """Fit on the training rows and return one score per test row.
+
+        Args:
+            train: grid, target and features of the training rows. A scorer that
+                tunes itself cuts its inner split on these dates, never on the
+                test ones.
+            test_features: features of the test rows.
+            test_grid: ``T0``, ``client_id`` and ``mrr`` of the test rows. The
+                target is removed before it reaches any scorer.
+        """
         ...
 
 
@@ -76,13 +90,12 @@ class RandomScorer:
 
     def fit_score(
         self,
-        train_features: pd.DataFrame,
-        train_target: pd.Series,
+        train: TrainingSet,
         test_features: pd.DataFrame,
         test_grid: pd.DataFrame,
     ) -> np.ndarray:
         """Return uniform random scores, ignoring every input but the size."""
-        del train_features, train_target, test_grid
+        del train, test_grid
         return np.random.default_rng(self._seed).random(len(test_features))
 
 
@@ -93,30 +106,37 @@ class RevenueScorer:
 
     def fit_score(
         self,
-        train_features: pd.DataFrame,
-        train_target: pd.Series,
+        train: TrainingSet,
         test_features: pd.DataFrame,
         test_grid: pd.DataFrame,
     ) -> np.ndarray:
-        """Return the revenue of each test row as its score."""
-        del train_features, train_target, test_features
+        """Return the revenue in force at ``T0`` of each test row as its score."""
+        del train, test_features
         return test_grid["mrr"].to_numpy(dtype="float64")
 
 
 class LogisticScorer:
     """Regularised logistic regression on standardised features."""
 
-    name = "logistic"
-
-    def __init__(self, regularisation: float = 1.0, max_iter: int = 2000) -> None:
+    def __init__(
+        self,
+        regularisation: float = 1.0,
+        max_iter: int = 2000,
+        families: Collection[FeatureSource] | None = None,
+        name: str = "logistic",
+    ) -> None:
         """Initialise the scorer.
 
         Args:
             regularisation: inverse strength of the L2 penalty, scikit-learn ``C``.
             max_iter: iteration cap of the solver.
+            families: feature families to learn from, all of them when ``None``.
+            name: name the scorer is reported under.
         """
         self._regularisation = regularisation
         self._max_iter = max_iter
+        self._families = families
+        self.name = name
         self.pipeline: Pipeline | None = None
 
     @staticmethod
@@ -132,16 +152,19 @@ class LogisticScorer:
         values[~np.isfinite(values)] = 0.0
         return values
 
+    def _scoped(self, features: pd.DataFrame) -> pd.DataFrame:
+        """Return the features of the families this scorer learns from."""
+        return features if self._families is None else select_families(features, self._families)
+
     def fit_score(
         self,
-        train_features: pd.DataFrame,
-        train_target: pd.Series,
+        train: TrainingSet,
         test_features: pd.DataFrame,
         test_grid: pd.DataFrame,
     ) -> np.ndarray:
         """Fit on the training rows and return the probability of churn."""
         del test_grid
-        if train_target.nunique() < _BINARY_CLASSES:
+        if train.target.nunique() < _BINARY_CLASSES:
             logger.warning("training fold holds a single class, constant scores returned")
             self.pipeline = None
             return np.zeros(len(test_features))
@@ -150,8 +173,8 @@ class LogisticScorer:
             StandardScaler(),
             LogisticRegression(C=self._regularisation, max_iter=self._max_iter),
         )
-        self.pipeline.fit(self._clean(train_features), train_target.to_numpy())
-        return self.pipeline.predict_proba(self._clean(test_features))[:, 1]
+        self.pipeline.fit(self._clean(self._scoped(train.features)), train.target.to_numpy())
+        return self.pipeline.predict_proba(self._clean(self._scoped(test_features)))[:, 1]
 
 
 def default_baselines(seed: int) -> list[Scorer]:

@@ -273,6 +273,24 @@ Une fois la grille recalée sur le journal, 20,5 % des lignes restantes portaien
 
 ---
 
+## D18. Le revenu d'un couple se lit dans le journal à sa date d'observation, jamais dans le référentiel
+
+**Statut** : Actée le 2026-09-13, après mesure sur KKBox.
+
+Un type d'événement s'ajoute à la nomenclature, `revenu_mensuel`, qui enregistre le revenu mensuel en vigueur à chaque changement de contrat. Le revenu d'un couple `(client_id, T0)` est la dernière valeur de ce type strictement antérieure à `T0`, et zéro quand aucune n'est encore connue. C'est lui qui alimente la variable `mrr`, le tri par revenu et le départage des égalités. La colonne `mrr` du référentiel décrit le compte à la date d'extraction : elle garde sa place dans l'export, jamais dans l'apprentissage ni dans l'évaluation.
+
+**Mesure qui fonde la décision.** Sur KKBox, l'adaptateur calculait le revenu du référentiel à partir de la dernière transaction de chaque compte, parfois postérieure de plusieurs mois à la date d'observation. Sur la grille hebdomadaire de l'échantillon de 8 150 comptes, soit 410 523 couples, la valeur figée différait de la valeur en vigueur dans 22,5 % des cas, et dans 32,6 % des couples positifs. Dans le journal projeté, 34 % des comptes ont connu plus d'un revenu. La section 3.3 du contrat l'interdisait déjà : aucune colonne du référentiel postérieure à `T0`.
+
+**Le sens de l'effet dépend de la mesure, la violation non.** Sur cette grille, le revenu figé obtient un meilleur ROC-AUC que le revenu en vigueur, 0,641 contre 0,607 : l'écart se concentre sur les comptes qui partent, dont la dernière transaction reflète souvent un changement de formule ou une annulation. En tête de liste, c'est l'inverse : sur les dates de test, la Precision@50 du tri par revenu vaut 0,0795 avec le revenu figé et 0,0980 avec le revenu en vigueur. Mais chaque semaine, 141 à 261 comptes partagent le revenu maximal, et leur ordre relève du départage par identifiant. Aucune conclusion du type « la fuite flattait le résultat » n'est donc retenue. Ce qui est établi : la règle était violée, le classement en dépendait, et les lignes de base sont remesurées au lot 5 sur la grille corrigée. Une première mesure faite le même jour, sur des dates mensuelles et les seuls comptes ayant déjà une transaction, n'est pas retenue : elle portait sur une autre population.
+
+**Revenu inconnu.** 27,3 % des couples n'ont encore aucun revenu connu à `T0` et portent zéro. Sur KKBox, ce zéro ne désigne pas un compte gratuit : l'extrait ne contient aucune transaction antérieure à 2015, et un abonné à une formule longue souscrite avant n'apparaît qu'à son renouvellement. Il signifie « aucun revenu connu dans le journal ».
+
+**Pourquoi la sentinelle ne l'avait pas vu.** Elle tronque le journal à `T0` et vérifie que rien ne change ; elle ne touche pas au référentiel. Un second test la complète : réécrire toutes les colonnes du référentiel dont aucune règle de la grille n'a besoin ne doit changer ni la grille ni les variables.
+
+**Un état, pas un flux.** `revenu_mensuel` se lit à la date et ne se somme jamais sur une fenêtre : additionner un revenu mensuel sur 90 jours n'a pas de sens. Plusieurs valeurs au même instant se résolvent par leur maximum, pour que le résultat ne dépende pas de l'ordre d'arrivée des lignes.
+
+---
+
 ## Points ouverts
 
 | Réf | Question | Qui tranche | Bloque |

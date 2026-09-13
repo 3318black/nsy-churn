@@ -188,6 +188,18 @@ def test_events_carry_the_families_the_source_can_produce() -> None:
     assert EventType.TICKET_SUPPORT_OUVERT.value not in produced
 
 
+def test_every_transaction_records_the_revenue_in_force() -> None:
+    """A pair reads its revenue at T0 from these events, never from the
+    reference, which holds the revenue of the last transaction. Decision D18."""
+    accounts = build_accounts(_members(), _transactions(), MARCH_2017)
+    events = build_events(_transactions(), accounts)
+    revenue = events.loc[events["event_type"] == EventType.REVENU_MENSUEL.value]
+    by_account = revenue.set_index("client_id")["event_value"]
+    assert len(revenue) == len(_transactions())
+    assert (by_account.loc["A"] == 149.0).all()
+    assert by_account.loc["B"].to_numpy() == pytest.approx([1788 / 410 * 30] * 2, rel=1e-3)
+
+
 def test_a_payment_shortfall_becomes_a_failed_debit() -> None:
     """Paying 100 against a listed 149 is a shortfall of 49."""
     accounts = build_accounts(_members(), _transactions(), MARCH_2017)

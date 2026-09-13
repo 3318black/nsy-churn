@@ -20,10 +20,10 @@ import pandas as pd
 import pytest
 
 from churn.config import AppConfig
-from churn.data.schemas import Dataset
+from churn.data.schemas import Dataset, EventType
 from churn.data.synthetic import generate_dataset
 from churn.features.build import GridSpec, build_grid
-from churn.features.windows import build_window_features
+from churn.features.windows import build_window_features, read_state_at
 
 #: Pairs checked against the naive computation. The acceptance criterion of lot 3
 #: sets the floor at two hundred.
@@ -112,6 +112,42 @@ def test_window_counts_match_a_naive_computation(dataset: Dataset, spec: GridSpe
                         f"{actual_sum} instead of {expected_sum}"
                     )
 
+    assert not mismatches, "\n".join(mismatches[:10])
+
+
+def _naive_state(
+    events: pd.DataFrame, client_id: str, upper: pd.Timestamp, event_type: str
+) -> float:
+    """Read the last known value strictly before ``upper``, by plain filtering."""
+    of_client = events.loc[
+        (events["client_id"] == client_id)
+        & (events["event_type"] == event_type)
+        & (events["event_ts"] < upper)
+        & events["event_value"].notna()
+    ]
+    if of_client.empty:
+        return float("nan")
+    last = of_client["event_ts"].max()
+    return float(of_client.loc[of_client["event_ts"] == last, "event_value"].max())
+
+
+def test_the_revenue_in_force_matches_a_naive_reading(dataset: Dataset, spec: GridSpec) -> None:
+    """The brute force check applied to the state read by ``read_state_at``."""
+    grid = build_grid(dataset, spec)
+    rng = np.random.default_rng(20260913)
+    sample = grid.iloc[rng.choice(len(grid), size=min(BRUTE_FORCE_PAIRS, len(grid)), replace=False)]
+    sample = sample[["client_id", "T0"]].reset_index(drop=True)
+    actual = read_state_at(sample, dataset.events, EventType.REVENU_MENSUEL.value)
+    assert actual.notna().sum() >= 200, "too few known revenues for the check to mean anything"
+
+    mismatches: list[str] = []
+    for position in range(len(sample)):
+        client_id = sample.iloc[position]["client_id"]
+        upper = sample.iloc[position]["T0"]
+        expected = _naive_state(dataset.events, client_id, upper, EventType.REVENU_MENSUEL.value)
+        value = float(actual.iloc[position])
+        if not (np.isnan(expected) and np.isnan(value)) and expected != value:
+            mismatches.append(f"{client_id} at {upper}: {value} instead of {expected}")
     assert not mismatches, "\n".join(mismatches[:10])
 
 
