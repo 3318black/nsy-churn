@@ -42,7 +42,7 @@ Le principe de versionnage est en décision D9 : contraintes minimales dans `pyp
 | **Python** | 3.14.4 | Exécution | 3.12 est le minimum déclaré. Toutes les roues binaires nécessaires existent en 3.14, vérifié par installation réelle. |
 | **pandas** | 3.0.5 | Manipulation de données | Conservé après mesure contre polars, décision D13. Attention à la résolution temporelle multiple, voir les pièges ci-dessous. |
 | **numpy** | 2.5.3 | Calcul numérique | Socle de toute la chaîne. |
-| **scikit-learn** | 1.9.0 | Découpage temporel, lignes de base, métriques | `TimeSeriesSplit` et son paramètre `gap` portent l'embargo de la décision D4. La régression logistique fournit la troisième ligne de base. |
+| **scikit-learn** | 1.9.0 | Lignes de base, métriques | La régression logistique fournit la troisième ligne de base, dans un pipeline qui apprend la normalisation sur l'entraînement seul. L'embargo de la décision D4 n'utilise pas `TimeSeriesSplit` : son paramètre `gap` compte des lignes et non des jours, le découpage est donc fait sur les dates. |
 | **xgboost** | 3.4.1 | Modèle et explicabilité | Retenu après mesure, décision D12. Fournit les contributions SHAP nativement par `pred_contribs`, ce qui retire `shap` de la production. |
 | **pydantic** | 2.13.5 | Contrats de données et configuration typée | Valide les tables d'entrée, la ligne d'export et le fichier de configuration. Un contrat non respecté échoue au chargement, jamais plus tard. |
 | **pyarrow** | 25.0.1 | Lecture et écriture Parquet | Format de sortie de référence, typé et compressé. |
