@@ -73,15 +73,18 @@ class TrainingSet(NamedTuple):
     features: pd.DataFrame
 
 
-def _observation_dates(
-    accounts: pd.DataFrame,
-    events: pd.DataFrame,
-    spec: GridSpec,
-) -> pd.DatetimeIndex:
-    """Return the observation dates covering the usable history."""
+def _observation_dates(events: pd.DataFrame, spec: GridSpec) -> pd.DatetimeIndex:
+    """Return the observation dates covering the usable history.
+
+    The history starts where the journal starts, never at the oldest account
+    registration. On KKBox, registrations go back to 2004 while transactions only
+    begin in January 2015: starting from the registrations produced ten years of
+    weekly dates where no termination could ever be observed, 56% of the grid,
+    and training folds holding not a single positive. See decision D17.
+    """
     if events.empty:
         return pd.DatetimeIndex([], dtype=f"datetime64[{spec.resolution}, UTC]")
-    first = min(accounts["date_debut_contrat"].min(), events["event_ts"].min())
+    first = events["event_ts"].min()
     last = events["event_ts"].max()
     start = first + pd.Timedelta(days=spec.min_history_days)
     return pd.date_range(start, last, freq=spec.observation_frequency, tz="UTC").as_unit(
@@ -101,7 +104,7 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
         evaluation, sorted deterministically.
     """
     accounts = dataset.accounts
-    dates = _observation_dates(accounts, dataset.events, spec)
+    dates = _observation_dates(dataset.events, spec)
     if accounts.empty or len(dates) == 0:
         return pd.DataFrame(columns=["client_id", "T0", "y", "mrr"])
 
@@ -126,7 +129,15 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
     # period, which is exactly the one a model is judged on.
     outcome_known = (grid["T0"] + horizon) <= history_end
 
-    grid = grid.loc[active & old_enough & outcome_known].copy()
+    # An account enters the grid only once it has been observed, with at least
+    # one event strictly before T0. Before that it is registered but not yet a
+    # customer, and predicting its termination means nothing. The first event is
+    # read strictly before T0, so eligibility depends on no later fact.
+    first_seen = dataset.events.groupby("client_id")["event_ts"].min().rename("first_seen")
+    grid = grid.join(first_seen, on="client_id")
+    observed = grid["first_seen"].notna() & (grid["first_seen"] < grid["T0"])
+
+    grid = grid.loc[active & old_enough & outcome_known & observed].copy()
     grid["y"] = (
         ended.loc[grid.index].notna()
         & (ended.loc[grid.index] > grid["T0"])

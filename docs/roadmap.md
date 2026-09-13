@@ -120,6 +120,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `src/churn/evaluation/metrics.py`, `precision_at_k` par période, rappel au rang K, lift contre le tri par revenu
 - `src/churn/evaluation/baselines.py`, les trois lignes de base : hasard, tri par revenu décroissant, régression logistique
 - `src/churn/evaluation/report.py`, rapport portant la mention de la source de données
+- `src/churn/evaluation/protocol.py`, passage de tout classement dans les mêmes plis, périodes et K, pour que les lignes de base et le modèle du lot 5 soient comparés à armes égales
+- `scripts/evaluate_baselines.py`, mesure des trois lignes de base sur une source donnée, sans accès réseau
 
 **Critères d'acceptation**
 

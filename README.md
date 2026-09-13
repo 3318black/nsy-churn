@@ -35,11 +35,12 @@ Les données brutes ne sont pas versionnées.
 | Fichier | Contenu |
 | :--- | :--- |
 | `AGENTS.md` | Manuel opératoire de l'agent développeur. Point d'entrée. |
-| `docs/decisions.md` | Décisions closes, de D1 à D16, et points ouverts. |
+| `docs/decisions.md` | Décisions closes, de D1 à D17, et points ouverts. |
 | `docs/data-contract.md` | Tables d'entrée, construction du jeu d'apprentissage, règle de non-fuite, pièges mesurés, schéma de sortie. |
 | `docs/dataset-kkbox.md` | Projection du jeu KKBox sur le contrat et reconstruction de la cible. |
 | `docs/roadmap.md` | Neuf lots, avec critères d'acceptation. |
 | `docs/revue-spec-v3.md` | Revue critique du cadrage initial et motifs des corrections. |
+| `docs/resultats.md` | Mesures qui engagent le projet, datées, avec leur source et leurs limites. |
 | `docs/stack.md` | Stack complète, versions vérifiées, pièges connus. |
 | `refs/` | Cadrage d'origine, conservé comme archive. |
 

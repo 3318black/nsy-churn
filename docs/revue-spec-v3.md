@@ -31,7 +31,9 @@ C'est le défaut le plus grave, et il produit un modèle qui paraît excellent e
 
 La cible d'une observation datée `T0` se résout à `T0 + 60 jours`. Un `TimeSeriesSplit` classique coupe le jeu en un point unique : les dernières observations d'entraînement ont donc une cible qui se réalise à l'intérieur de la période de test. Le modèle apprend sur des issues qui appartiennent à la fenêtre qu'il est censé prédire.
 
-Correction obligatoire : intercaler une période d'embargo d'au moins 60 jours entre la fin de l'entraînement et le début du test, et purger toute observation d'entraînement dont la fenêtre de cible empiète sur le test. La classe `TimeSeriesSplit` de scikit-learn accepte un paramètre `gap` qui répond exactement à ce besoin. Il n'apparaît nulle part dans la spec V3.
+Correction obligatoire : intercaler une période d'embargo d'au moins 60 jours entre la fin de l'entraînement et le début du test, et purger toute observation d'entraînement dont la fenêtre de cible empiète sur le test. Ce point n'apparaît nulle part dans la spec V3.
+
+**Rectification du 13 septembre 2026.** Une première version de cette revue indiquait que le paramètre `gap` de `TimeSeriesSplit` répondait exactement à ce besoin. C'est inexact : `gap` compte des lignes, pas des jours, et la grille d'observation contient un nombre variable de comptes par date. Un écart de N lignes couvrirait quelques jours sur une semaine dense et un mois sur une semaine creuse. Le découpage est donc réalisé sur les dates, dans `src/churn/evaluation/splitting.py`.
 
 ### 3.2 La Precision@K est mal définie
 

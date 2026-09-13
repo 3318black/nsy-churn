@@ -73,11 +73,12 @@ C'est le cœur du projet et l'endroit où se joue la validité de tout le reste.
 
 Le jeu d'apprentissage est une grille de couples `(client_id, T0)`. Les dates `T0` sont espacées régulièrement, chaque lundi par défaut, sur toute la profondeur d'historique disponible.
 
-Un couple `(client_id, T0)` entre dans la grille si et seulement si les trois conditions suivantes sont réunies à `T0` :
+Un couple `(client_id, T0)` entre dans la grille si et seulement si les quatre conditions suivantes sont réunies à `T0` :
 
 1. le compte est actif, c'est-à-dire `date_resiliation` absente ou postérieure à `T0`
 2. l'ancienneté du compte atteint au moins 60 jours, soit `T0 - date_debut_contrat >= 60 jours`
-3. l'historique disponible couvre au moins la plus longue fenêtre de calcul de variables, soit 90 jours
+3. l'historique du journal couvre au moins la plus longue fenêtre de calcul de variables, soit 90 jours : les dates d'observation commencent au premier événement du journal augmenté de cette profondeur, jamais à la plus ancienne inscription
+4. le compte présente au moins un événement strictement antérieur à `T0`, faute de quoi il est inscrit mais pas encore client. Voir décision D17
 
 ### 3.2 Cible
 

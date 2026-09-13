@@ -169,3 +169,35 @@ def test_structural_features_are_known_at_t0(dataset: Dataset, spec: GridSpec) -
     """Account age is a difference against ``T0`` itself, so it carries no future."""
     training = build_training_set(dataset, spec)
     assert (training.features["anciennete_jours"] >= spec.min_account_age_days).all()
+
+
+def test_the_grid_starts_with_the_journal_not_with_old_registrations(spec: GridSpec) -> None:
+    """Registrations older than the journal must not pull the grid back in time.
+
+    On KKBox, registrations go back to 2004 and transactions start in 2015.
+    Starting from the registrations produced ten years without any observable
+    termination and training folds without a single positive. Decision D17.
+    """
+    accounts = _one_account("2010-01-01")
+    events = _events_between("2025-01-01", "2025-12-31")
+    grid = build_grid(_dataset_of(accounts, events), spec)
+    assert not grid.empty
+    earliest = events["event_ts"].min() + pd.Timedelta(days=spec.min_history_days)
+    assert grid["T0"].min() >= earliest
+
+
+def test_an_account_never_observed_before_t0_is_absent(spec: GridSpec) -> None:
+    """Scoring an account before it ever became a customer is meaningless."""
+    accounts = pd.concat(
+        [_one_account("2024-01-01"), _one_account("2024-01-01").assign(client_id="B")],
+        ignore_index=True,
+    )
+    events_b = _events_between("2025-06-04", "2025-12-31").assign(client_id="B")
+    events = pd.concat([_events_between("2024-06-01", "2025-12-31"), events_b], ignore_index=True)
+    grid = build_grid(_dataset_of(accounts, events), spec)
+
+    first_seen_b = events_b["event_ts"].min()
+    rows_b = grid.loc[grid["client_id"] == "B", "T0"]
+    assert not rows_b.empty
+    assert (rows_b > first_seen_b).all()
+    assert (grid.loc[grid["client_id"] == "A", "T0"] < first_seen_b).any()

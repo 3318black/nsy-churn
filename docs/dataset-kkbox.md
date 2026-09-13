@@ -166,7 +166,7 @@ Ce contrôle est le point technique le plus démonstratif du projet. Reconstruir
 | :--- | :--- |
 | Ancienneté minimale de 60 jours | Conservée, calculée depuis `registration_init_time` |
 | Historique minimal de 90 jours | Conservée |
-| Compte actif à `T0` | Abonnement en cours non expiré depuis plus de 30 jours |
+| Compte actif à `T0` | Aucune résiliation antérieure à `T0` et au moins une transaction strictement antérieure à `T0`. Les inscriptions remontent à 2004 quand les transactions commencent en 2015, voir décision D17 |
 | Purge des identifiants manquants | `msno` absent des trois fichiers après jointure |
 
 ## 7. Mise en place de l'accès Kaggle

@@ -255,6 +255,24 @@ Ces cinq points sont exactement ce qui distingue ce projet des centaines de proj
 
 ---
 
+## D17. La grille démarre avec le journal, et un compte n'y entre qu'une fois observé
+
+**Statut** : Actée le 2026-09-13, après mesure sur KKBox.
+
+Deux règles d'éligibilité s'ajoutent à la construction de la grille. Les dates d'observation commencent au premier événement du journal, augmenté de la profondeur d'historique minimale, et non à la plus ancienne date d'inscription. Un couple `(client_id, T0)` n'entre dans la grille que si le compte présente au moins un événement strictement antérieur à `T0`.
+
+**Mesure qui fonde la décision.** Sur un échantillon KKBox de 8 150 comptes, les inscriptions remontent à 2004 alors que les transactions ne commencent qu'en janvier 2015. La grille partait donc de 2004 : 662 dates hebdomadaires et 1 202 169 lignes, dont 56 % antérieures à 2015, où aucune résiliation ne pouvait être observée. Les quatre plis d'entraînement ne contenaient pas un seul positif. La régression logistique, réduite à des scores constants départagés par le revenu, reproduisait exactement le tri par revenu. Le protocole avait produit un chiffre, pas une mesure.
+
+Une fois la grille recalée sur le journal, 20,5 % des lignes restantes portaient encore un compte sans aucun événement antérieur à `T0`, c'est-à-dire inscrit mais pas encore client. Prédire la résiliation de quelqu'un qui n'a jamais souscrit n'a pas de sens pour une équipe de rétention.
+
+**Absence de fuite.** La date du premier événement est lue strictement avant `T0`. L'éligibilité d'un couple ne dépend donc d'aucun fait postérieur à sa date d'observation.
+
+**Garde-fou ajouté.** Le protocole d'évaluation refuse désormais un pli dont l'entraînement ne contient qu'une seule classe, au lieu de laisser une ligne de base produire des scores constants en silence.
+
+**Pourquoi le jeu synthétique ne l'avait pas révélé.** Ses comptes commencent à produire des événements le jour même de leur souscription. Inscription et début du journal y coïncident, et le défaut restait invisible.
+
+---
+
 ## Points ouverts
 
 | Réf | Question | Qui tranche | Bloque |
