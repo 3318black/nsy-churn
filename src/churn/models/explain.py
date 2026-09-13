@@ -169,6 +169,8 @@ def factor_labels(
     """
     present = {value for value in factors.to_numpy().ravel() if value}
     check_mapping(present, mapping)
-    rendered = {origin: f"[{entry.source.value}] {entry.label}" for origin, entry in mapping.items()}
+    rendered = {
+        origin: f"[{entry.source.value}] {entry.label}" for origin, entry in mapping.items()
+    }
     rendered[""] = ""
     return factors.apply(lambda column: column.map(rendered))
