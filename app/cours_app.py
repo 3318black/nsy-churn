@@ -50,6 +50,9 @@ RESPONSES_PREFIX = "reponses-"
 
 REPOSITORY_URL = "https://github.com/3318black/nsy-churn"
 
+#: The demonstration of the product the course explains.
+DEMO_URL = "https://appapppy-gm32tcl7sk2qhllhvg9vdv.streamlit.app/"
+
 
 def _done() -> set[str]:
     """Return the lessons finished during this session."""
@@ -92,7 +95,9 @@ def _sidebar(course: Course, keys: list[str]) -> str:
         "Aller à", keys, key=PAGE_KEY, format_func=lambda key: _label(course, key)
     )
     st.sidebar.caption("La progression est gardée tant que la page reste ouverte.")
-    st.sidebar.markdown(f"[Le code du projet]({REPOSITORY_URL})")
+    st.sidebar.markdown(
+        f"[L'application du projet]({DEMO_URL}) · [Le code du projet]({REPOSITORY_URL})"
+    )
     return str(page)
 
 

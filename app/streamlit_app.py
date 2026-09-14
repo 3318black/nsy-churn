@@ -52,6 +52,9 @@ SCREENS = (HOME_SCREEN, LIST_SCREEN, ACCOUNT_SCREEN, PERFORMANCE_SCREEN)
 #: Where the code, the course and the results live.
 REPOSITORY_URL = "https://github.com/3318black/nsy-churn"
 
+#: The course application, which reads the course of the repository, decision D25.
+COURSE_URL = "https://coursapppy-2btm3etswcx5yzqdxqib7p.streamlit.app/"
+
 #: Display names of the rankings of the evaluation report.
 SCORER_LABELS = {
     "random": "Hasard",
@@ -250,7 +253,7 @@ def _show_home(config: AppConfig, source: str, is_synthetic: bool) -> None:
 
     st.markdown(
         f"**En savoir plus** : [le code]({REPOSITORY_URL}) · "
-        f"[le cours pour débutant]({REPOSITORY_URL}/blob/main/docs/cours/README.md) · "
+        f"[le cours interactif pour débutant]({COURSE_URL}) · "
         f"[les résultats détaillés]({REPOSITORY_URL}/blob/main/docs/resultats.md)"
     )
 
