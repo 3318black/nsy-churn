@@ -15,4 +15,4 @@ Ordre de lecture avant toute implémentation :
 - `docs/revue-spec-v3.md`, la revue critique du cadrage initial et les motifs des corrections
 - `refs/table-ronde-cadrage-2026-08-28.md`, le cadrage d'origine, conservé comme archive et non comme référence active
 
-**Consigne permanente du propriétaire du projet.** Chaque avancement livré s'accompagne d'un document de cours dans `docs/cours/`, qui explique ce qui a été fait, pourquoi et comment, à un lecteur débutant. Voir la section 9 d'`AGENTS.md` et `docs/cours/README.md`.
+**Consigne permanente du propriétaire du projet.** Chaque avancement livré complète le cours pour débutant de `docs/cours/`, organisé comme un cours en ligne : l'application, la méthode et les outils d'abord, puis un chapitre par étape, avec exercices et quiz. Voir la section 9 d'`AGENTS.md` et `docs/cours/README.md`.

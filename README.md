@@ -36,7 +36,7 @@ Les données brutes ne sont pas versionnées.
 | :--- | :--- |
 | `AGENTS.md` | Manuel opératoire de l'agent développeur. Point d'entrée. |
 | `docs/decisions.md` | Décisions closes, de D1 à D18, et points ouverts. |
-| `docs/cours/` | Un cours par lot livré : ce qui a été fait, pourquoi et comment, expliqué à un débutant. |
+| `docs/cours/` | Cours pour débutant, en parties et chapitres : l'application, la méthode, les outils, puis chaque étape de construction, avec exercices et quiz. |
 | `docs/data-contract.md` | Tables d'entrée, construction du jeu d'apprentissage, règle de non-fuite, pièges mesurés, schéma de sortie. |
 | `docs/dataset-kkbox.md` | Projection du jeu KKBox sur le contrat et reconstruction de la cible. |
 | `docs/roadmap.md` | Neuf lots, avec critères d'acceptation. |

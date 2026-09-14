@@ -22,11 +22,15 @@ jobs:
         python-version: ["3.12", "3.14"]
 
     steps:
+      # Versions passees a Node.js 24, Node.js 20 etant deprecie sur les
+      # executeurs GitHub. setup-uv ne publie plus d'etiquette majeure depuis
+      # sa v8 : la version complete est donc indiquee. Sa v10 desactive le
+      # cache en mode auto sur certains evenements, d'ou enable-cache explicite.
       - name: Recuperer le depot
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Installer uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
 

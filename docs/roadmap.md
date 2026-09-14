@@ -143,7 +143,7 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `src/churn/models/registry.py`, sérialisation avec métadonnées : version, graine, seuil de signification, empreinte du jeu d'entraînement
 - `src/churn/features/catalog.py`, variable d'origine et famille de chaque colonne, dont dépendent l'agrégation des contributions et la mesure par famille
 - `scripts/train_model.py`, comparaison du modèle aux lignes de base dans le protocole du lot 4, puis entraînement, sauvegarde et explication de la dernière période
-- `docs/cours/lot-5-modelisation.md`, le document de cours du lot
+- les chapitres 8 et 9 du cours, `docs/cours/08-entrainer-le-modele.md` et `docs/cours/09-expliquer-les-predictions.md`
 
 **Préalable découvert au démarrage, décision D18.** Le revenu utilisé comme variable et comme ligne de base venait de la dernière transaction du compte, différente du revenu en vigueur à `T0` sur 22,5 % des lignes de la grille. Il est désormais lu dans le journal, par l'événement `revenu_mensuel`, et les lignes de base sont remesurées sur la grille corrigée.
 
@@ -169,6 +169,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `src/churn/pipeline/run_scoring.py`, point d'entrée en ligne de commande
 - `src/churn/pipeline/sinks.py`, interface de destination, implémentations Parquet, CSV et JSON. La destination JSON prépare un front dédié éventuel sans jamais toucher au pipeline, voir décision D15
 - `src/churn/pipeline/schemas.py`, schéma Pydantic de la ligne d'export
+
+**Facteurs actionnables seulement, choix arrêté le 2026-09-14.** L'export n'affiche que des facteurs dont le libellé porte une action, c'est-à-dire aucun facteur de la famille `GENERAL` comme le revenu ou l'ancienneté. Ils continuent de peser dans le score, mais n'occupent pas une case de motif que le commercial ne pourrait pas exploiter. Décision à consigner en D19 au démarrage du lot.
 
 **Critères d'acceptation**
 
@@ -209,6 +211,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 **Effort** : 1 unité. **Dépend de** : lot 7. **Référence** : décision D16.
 
 Écrit en dernier, prévu dès le départ. C'est le premier et souvent le seul document lu.
+
+**Mesure complémentaire préalable, choix arrêté le 2026-09-14.** Avant d'écrire les résultats, une dernière mesure dans le protocole du lot 4 : une grille de réglages élargie vers des modèles plus simples, la sélection du lot 5 se logeant dans son coin le plus prudent, et une régression logistique mieux préparée, avec régularisation choisie et comptages transformés. Le but est que la comparaison publiée résiste à l'objection d'une ligne de base trop faible. Les chiffres retenus remplacent ceux du lot 5 dans `docs/resultats.md` s'ils changent.
 
 **Plan imposé**
 
