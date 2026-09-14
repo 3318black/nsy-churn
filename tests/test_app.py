@@ -30,7 +30,12 @@ from churn.pipeline.sinks import default_sinks, write_batch
 
 APP = PROJECT_ROOT / "app" / "streamlit_app.py"
 
-SCREENS = ("Liste du lundi", "Fiche d'un compte", "Performance du modèle")
+HOME, LIST, ACCOUNT, PERFORMANCE = SCREENS = (
+    "Le projet",
+    "Liste du lundi",
+    "Fiche d'un compte",
+    "Performance du modèle",
+)
 
 SMALL = (BoosterParams(max_depth=2, n_estimators=20, learning_rate=0.3),)
 
@@ -144,34 +149,49 @@ def test_the_simulated_banner_is_on_every_screen(
     assert any("Données simulées" in element.value for element in app.warning)
 
 
+def test_the_home_screen_opens_the_application(
+    populated_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A first visit lands on the project, with its key figures read from the report."""
+    app = _run(populated_root, monkeypatch, source="synthetic")
+    assert not app.exception
+    assert app.title[0].value == HOME
+    labels = {metric.label for metric in app.metric}
+    assert {"Tri par revenu", "Régression logistique"} <= labels
+    assert all("départs trouvés" in metric.value for metric in app.metric)
+
+
 def test_the_list_shows_the_calls_of_the_week(
     populated_root: Path, monkeypatch: pytest.MonkeyPatch, config: AppConfig
 ) -> None:
     """Screen 1: the head of the list, in rank order, read from the export."""
-    app = _run(populated_root, monkeypatch, source="synthetic")
+    app = _run(populated_root, monkeypatch, source="synthetic", screen=LIST)
     assert not app.exception
     table = app.dataframe[0].value
     assert len(table) == config.business.weekly_capacity_k
     assert table["rang_priorite"].tolist() == list(range(1, len(table) + 1))
 
 
-def test_the_account_sheet_reads_contributions_and_history(
+def test_the_account_sheet_says_what_to_do_and_who_the_subscriber_is(
     populated_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Screen 2: nothing is recomputed, and nothing is missing."""
-    app = _run(populated_root, monkeypatch, source="synthetic", screen=SCREENS[1])
+    """Screen 2: motives with their action, a profile, contributions and history."""
+    app = _run(populated_root, monkeypatch, source="synthetic", screen=ACCOUNT)
     assert not app.exception
-    assert len(app.metric) == 4
+    labels = {metric.label for metric in app.metric}
+    assert {"Rang", "Décile de risque", "Inscription", "Dernière facture"} <= labels
+    assert any(caption.value.startswith("Action conseillée") for caption in app.caption)
     alerts = _alerts(app)
     assert not any("contributions" in text for text in alerts)
     assert not any("historique" in text for text in alerts)
+    assert not any("profil" in text for text in alerts)
 
 
 def test_the_performance_screen_reads_the_report(
     populated_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Screen 3: the measures come from the evaluation report files."""
-    app = _run(populated_root, monkeypatch, source="synthetic", screen=SCREENS[2])
+    app = _run(populated_root, monkeypatch, source="synthetic", screen=PERFORMANCE)
     assert not app.exception
     assert app.dataframe
     assert not any("rapport" in text for text in _alerts(app))
