@@ -1,0 +1,165 @@
+# Correspondance entre variable d'origine et libelle metier.
+# Dictionnaire statique, deterministe et testable. Aucun modele de langage
+# n'intervient dans cette traduction. Voir AGENTS.md section 4.
+#
+# La cle est la variable d'origine, telle que la calcule
+# src/churn/features/catalog.py : le type d'evenement pour les fenetres de
+# comptage et de somme, prefixe par trend_ pour leurs tendances, ou le nom de la
+# variable structurelle. Les contributions des fenetres 7, 30 et 90 jours d'un
+# meme type sont sommees a ce niveau avant l'extraction des facteurs. Voir D7.
+#
+# `label` est affiche tel quel, prefixe par `source`, ce qui donne par exemple
+# "[PRODUCT] Fréquence d'usage". Les libelles portent leurs accents parce qu'ils
+# sont lus par le metier, dans l'export et dans l'interface.
+#
+# Les libelles nomment un signal, jamais son sens. Une contribution positive dit
+# que la valeur de la variable pousse le risque a la hausse, pas si cette valeur
+# est haute ou basse. Ecrire "Chute de l'usage" serait une supposition, donc un
+# motif invente. Le sens sera tire de la valeur elle-meme dans un lot ulterieur.
+#
+# `action` indique le levier a actionner. Il reste vide pour les variables
+# structurelles, sur lesquelles aucune action n'est possible.
+#
+# Une variable absente du jeu courant est simplement inutilisee. Une variable
+# produite par le pipeline mais absente d'ici fait echouer l'entrainement : un
+# facteur ne s'affiche jamais sous son nom technique.
+
+# --- PRODUCT ---
+
+connexion:
+  label: "Fréquence d'usage"
+  source: "PRODUCT"
+  action: "Vérifier si l'usage du service a changé"
+
+trend_connexion:
+  label: "Évolution récente de la fréquence d'usage"
+  source: "PRODUCT"
+  action: "Demander ce qui a changé dans l'usage ces dernières semaines"
+
+usage_module_cle:
+  label: "Temps d'usage"
+  source: "PRODUCT"
+  action: "Vérifier si le besoin couvert par le service a changé"
+
+trend_usage_module_cle:
+  label: "Évolution récente du temps d'usage"
+  source: "PRODUCT"
+  action: "Reprendre contact avant la fin de la période en cours"
+
+taux_completion:
+  label: "Engagement sur les contenus"
+  source: "PRODUCT"
+  action: "Vérifier la pertinence de l'offre pour cet usage"
+
+trend_taux_completion:
+  label: "Évolution récente de l'engagement sur les contenus"
+  source: "PRODUCT"
+  action: "Proposer une découverte guidée des contenus"
+
+desactivation_module:
+  label: "Désactivation de fonctionnalités"
+  source: "PRODUCT"
+  action: "Identifier les fonctionnalités délaissées"
+
+trend_desactivation_module:
+  label: "Évolution récente des désactivations de fonctionnalités"
+  source: "PRODUCT"
+  action: "Identifier les fonctionnalités délaissées"
+
+# --- SUPPORT ---
+
+ticket_support_ouvert:
+  label: "Tickets support ouverts"
+  source: "SUPPORT"
+  action: "Vérifier les incidents ouverts avant l'appel"
+
+trend_ticket_support_ouvert:
+  label: "Évolution récente des tickets support"
+  source: "SUPPORT"
+  action: "Reprendre l'historique des trois derniers tickets"
+
+ticket_support_resolu:
+  label: "Délais de résolution support"
+  source: "SUPPORT"
+  action: "Proposer une prise en charge prioritaire"
+
+trend_ticket_support_resolu:
+  label: "Évolution récente des délais de résolution support"
+  source: "SUPPORT"
+  action: "Proposer une prise en charge prioritaire"
+
+# --- FINANCE ---
+
+facture_emise:
+  label: "Facturation"
+  source: "FINANCE"
+  action: "Vérifier la situation de facturation"
+
+trend_facture_emise:
+  label: "Évolution récente de la facturation"
+  source: "FINANCE"
+  action: "Vérifier un changement de formule ou une interruption de facturation"
+
+facture_payee:
+  label: "Délais de paiement"
+  source: "FINANCE"
+  action: "Vérifier la situation de facturation avant l'appel"
+
+trend_facture_payee:
+  label: "Évolution récente des délais de paiement"
+  source: "FINANCE"
+  action: "Vérifier la situation de facturation avant l'appel"
+
+echec_prelevement:
+  label: "Écart entre montant facturé et montant payé"
+  source: "FINANCE"
+  action: "Faire vérifier le moyen de paiement et les remises accordées"
+
+trend_echec_prelevement:
+  label: "Évolution récente des écarts de paiement"
+  source: "FINANCE"
+  action: "Faire vérifier le moyen de paiement et les remises accordées"
+
+annulation_abonnement:
+  label: "Annulations d'abonnement"
+  source: "FINANCE"
+  action: "Reprendre l'historique des annulations"
+
+trend_annulation_abonnement:
+  label: "Évolution récente des annulations d'abonnement"
+  source: "FINANCE"
+  action: "Reprendre l'historique des annulations"
+
+desactivation_renouvellement:
+  label: "Statut du renouvellement automatique"
+  source: "FINANCE"
+  action: "Rappeler avant la date d'expiration"
+
+trend_desactivation_renouvellement:
+  label: "Évolution récente du renouvellement automatique"
+  source: "FINANCE"
+  action: "Rappeler avant la date d'expiration"
+
+# --- COMMERCIAL ---
+
+contact_commercial:
+  label: "Contacts commerciaux"
+  source: "COMMERCIAL"
+  action: "Reprendre contact sans attendre"
+
+trend_contact_commercial:
+  label: "Évolution récente des contacts commerciaux"
+  source: "COMMERCIAL"
+  action: "Reprendre contact sans attendre"
+
+# --- GENERAL, variables structurelles sans levier d'action ---
+
+anciennete_jours:
+  label: "Ancienneté du compte"
+  source: "GENERAL"
+  action: ""
+
+mrr:
+  label: "Revenu mensuel en vigueur"
+  source: "GENERAL"
+  action: ""

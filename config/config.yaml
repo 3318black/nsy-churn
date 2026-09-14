@@ -101,6 +101,13 @@ export:
   csv_decimal: ","
   max_label_length: 255
 
+# Interface en lecture seule. Voir decisions D21 et D22.
+interface:
+  # Message affiche a la place d'un export absent. Vide en local : l'interface
+  # indique alors la commande qui produit l'export. Renseigne dans la version en
+  # ligne, qui ne publie aucune donnee individuelle KKBox.
+  missing_export_notice: ""
+
 # Chemins. Aucun module ne fabrique un chemin lui-meme.
 paths:
   raw: "data/raw"

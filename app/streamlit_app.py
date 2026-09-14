@@ -80,7 +80,20 @@ DEFAULT_CHART_SCORERS = ("revenue", "logistic", "xgboost")
 def _project_root() -> Path | None:
     """Return the project root the tests point at, or ``None`` for the real one."""
     value = os.environ.get("NSY_CHURN_ROOT")
-    return Path(value) if value else None
+    if not value:
+        # Streamlit Community Cloud stores it as a secret. Whether root level
+        # secrets also become environment variables is not documented, so the
+        # secret is read directly. Locally, without any secrets file, it is absent.
+        try:
+            value = str(st.secrets.get("NSY_CHURN_ROOT", "")) or None
+        except Exception:
+            value = None
+    if not value:
+        return None
+    # A relative root, such as the ``demo`` of the online deployment, is resolved
+    # against the repository rather than the directory the server was started in.
+    root = Path(value)
+    return root if root.is_absolute() else Path(__file__).resolve().parents[1] / root
 
 
 def _modified(path: Path) -> int:
@@ -114,8 +127,11 @@ def _banner(label: str, is_synthetic: bool, capacity: int) -> None:
         )
 
 
-def _no_export(source: str) -> None:
-    """Explain how to produce the missing export."""
+def _no_export(source: str, notice: str) -> None:
+    """Explain why the export is missing, or how to produce it."""
+    if notice.strip():
+        st.info(notice)
+        return
     st.info(
         "Aucun export disponible pour cette source. Pour le produire : "
         f"`uv run python -m churn.pipeline.run_scoring --source {source}`"
@@ -125,7 +141,6 @@ def _no_export(source: str) -> None:
 def _show_list(export: LoadedExport | None, source: str, export_dir: Path) -> None:
     """Screen 1: the prioritised list of the week."""
     if export is None:
-        _no_export(source)
         return
     identity = export.identity
     rows = export.rows
@@ -263,7 +278,6 @@ def _show_history(config: AppConfig, source: str, client_id: str, export: Loaded
 def _show_account(export: LoadedExport | None, config: AppConfig, source: str) -> None:
     """Screen 2: the sheet of one account."""
     if export is None:
-        _no_export(source)
         return
     rows = export.rows
     if rows.empty:
@@ -427,7 +441,9 @@ def main() -> None:
     _banner(label, is_synthetic, config.business.weekly_capacity_k)
 
     st.title(screen)
-    if screen == LIST_SCREEN:
+    if export is None and screen != PERFORMANCE_SCREEN:
+        _no_export(source, config.interface.missing_export_notice)
+    elif screen == LIST_SCREEN:
         _show_list(export, source, export_dir)
     elif screen == ACCOUNT_SCREEN:
         _show_account(export, config, source)

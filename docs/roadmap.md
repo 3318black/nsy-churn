@@ -195,7 +195,7 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - le fichier de contributions de l'export et les fichiers de données du rapport d'évaluation, sans lesquels les écrans 2 et 3 auraient dû recalculer, décision D21
 - le chapitre 11 du cours
 
-**Mise en ligne suspendue au point ouvert O5.** L'application tourne et se teste en local. Sa publication dépend des données que les règles de la compétition KKBox permettent de publier, décision qui revient au propriétaire du projet.
+**Mise en ligne, décision D22.** L'application en ligne lit `demo/`, construit par `scripts/build_demo.py` : les mesures agrégées de KKBox et une chaîne simulée complète, sans aucune donnée individuelle KKBox. La publication sur Streamlit Community Cloud se fait avec le compte propriétaire du dépôt, et son adresse est consignée dans le README.
 
 **Quatre écrans, par ordre de priorité**
 

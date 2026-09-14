@@ -49,7 +49,7 @@ Le raisonnement détaillé appartient au fichier de prompt. Le message de fin re
 
 - Jamais de commit ni de push direct sur `main`. Une branche par lot, nommée `lot-<n>-<sujet>`, puis une pull request.
 - Aucun trailer d'attribution dans les messages de commit ni dans les descriptions de pull request, sauf autorisation explicite demandée au préalable.
-- Aucune donnée, aucun modèle sérialisé, aucun rapport généré dans le suivi de version. Voir `.gitignore`.
+- Aucune donnée, aucun modèle sérialisé, aucun rapport généré dans le suivi de version. Voir `.gitignore`. Seule exception : `demo/`, racine de la démonstration en ligne, régénérée par `scripts/build_demo.py` et limitée à des données simulées et à des agrégats KKBox, décision D22.
 - Les messages de commit et la documentation sont rédigés en français, avec une ponctuation correcte. Le tiret cadratin employé pour accoler une explication est proscrit : construis la phrase, ou fais-en deux.
 - Le code, les noms de variables, les docstrings et les messages de journalisation sont en anglais. La documentation et les libellés destinés au métier sont en français.
 

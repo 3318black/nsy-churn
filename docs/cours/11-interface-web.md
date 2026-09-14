@@ -132,7 +132,13 @@ Plusieurs options existent :
 - publier un **extrait réduit** des résultats KKBox, sans le journal d'écoute, après avoir vérifié ce que les règles autorisent ;
 - ne pas publier, et présenter l'interface par des **captures d'écran** dans le README.
 
-Ce choix engage la personne qui publie. Il est donc laissé au propriétaire du projet, et inscrit comme point ouvert dans le registre des décisions.
+Ce choix engage la personne qui publie. Il a donc été laissé au propriétaire du projet, qui a retenu une solution intermédiaire, la décision D22 :
+
+- l'écran de **performance** montre les vrais résultats KKBox, qui ne sont que des moyennes et ne décrivent aucun abonné ;
+- la **liste** et la **fiche** tournent sur une chaîne complète de **données simulées**, sous leur bandeau orange ;
+- sur la source KKBox, un message remplace la liste et explique pourquoi elle n'est pas publiée.
+
+Ces fichiers vivent dans un dossier `demo/`, construit par un script. Le script refuse de copier un fichier qui contiendrait un identifiant d'abonné, et deux tests vérifient qu'aucune donnée individuelle KKBox ne s'y glisse jamais.
 
 > **À retenir.** Mettre des données en ligne est une décision, pas un détail technique. Avant de publier, on vérifie ce que la licence ou les règles d'utilisation des données permettent.
 

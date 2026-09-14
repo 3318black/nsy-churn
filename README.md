@@ -62,6 +62,24 @@ uv run python -m churn.pipeline.run_scoring --source kkbox  # liste du lundi
 uv run streamlit run app/streamlit_app.py                  # interface, sur http://localhost:8501
 ```
 
+## Interface en ligne
+
+Adresse : en cours de publication.
+
+La version en ligne ne publie aucune donnée individuelle KKBox, décision D22. L'écran de performance montre les vrais résultats KKBox, qui ne sont que des moyennes ; la liste et la fiche d'un compte tournent sur des données simulées. Elle lit le dossier `demo/`, reconstruit par `uv run python scripts/build_demo.py`.
+
+Publication sur Streamlit Community Cloud, avec le compte GitHub propriétaire du dépôt :
+
+1. sur `share.streamlit.io`, choisir « Create app » ;
+2. dépôt `3318black/nsy-churn`, branche `main`, fichier `app/streamlit_app.py` ;
+3. dans « Advanced settings », garder Python 3.12 et saisir le secret suivant :
+
+   ```toml
+   NSY_CHURN_ROOT = "demo"
+   ```
+
+4. déployer, puis reporter l'adresse obtenue en tête de cette section.
+
 ## Périmètre
 
 Contrat de données, générateur synthétique, adaptateur KKBox, construction du jeu d'apprentissage sans fuite temporelle, protocole d'évaluation, modélisation, explicabilité locale, export Parquet et CSV, interface Streamlit en lecture seule.
