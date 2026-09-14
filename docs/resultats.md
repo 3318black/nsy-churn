@@ -94,7 +94,7 @@ Aucun accès réseau. Nécessite le jeu projeté et le modèle du lot 5.
 
 ### Lecture
 
-**Le modèle bat les trois lignes de base, nettement et sur chaque pli.** Sur une liste de 50 comptes par semaine, XGBoost en désigne environ 17 qui partiront dans les 30 jours. La régression logistique en désigne environ 7, le tri par revenu 5, le hasard 1. Le hasard retombe sur le taux de base, 0,0205 pour 0,0194, ce qui contrôle la métrique.
+**Le modèle bat les trois lignes de base, nettement, sur chaque pli et presque chaque semaine.** Semaine par semaine, XGBoost dépasse à la fois la régression logistique et le tri par revenu sur 78 des 80 semaines de test, décompte fait le 14 septembre sur `evaluation_precision_per_period.csv`. Sur une liste de 50 comptes par semaine, XGBoost en désigne environ 17 qui partiront dans les 30 jours. La régression logistique en désigne environ 7, le tri par revenu 5, le hasard 1. Le hasard retombe sur le taux de base, 0,0205 pour 0,0194, ce qui contrôle la métrique.
 
 **Le gain du modèle est établi.** À variables égales, sur la seule famille financière, XGBoost gagne 0,169 de Precision@50 sur la régression logistique. L'écart par pli vaut 0,179, 0,155, 0,174 et 0,169 : positif sur les quatre plis, avec un écart type de 0,009, très inférieur au gain.
 

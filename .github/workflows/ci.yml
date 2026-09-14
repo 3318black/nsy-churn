@@ -43,12 +43,12 @@ jobs:
           UV_PYTHON: ${{ matrix.python-version }}
 
       - name: Verifier les regles ruff
-        run: uv run ruff check src tests scripts
+        run: uv run ruff check src tests scripts app
         env:
           UV_PYTHON: ${{ matrix.python-version }}
 
       - name: Verifier le formatage
-        run: uv run ruff format --check src tests scripts
+        run: uv run ruff format --check src tests scripts app
         env:
           UV_PYTHON: ${{ matrix.python-version }}
 

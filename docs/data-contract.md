@@ -156,4 +156,14 @@ Une ligne par client scoré, pour une date d'exécution donnée.
 
 **Tri de sortie déterministe** : `score_brut_technique` décroissant, puis `mrr` décroissant, puis `client_id` croissant. Ce troisième critère garantit que deux exécutions sur les mêmes données produisent exactement le même fichier.
 
+**Fichier de contributions**, écrit à côté de l'export pour l'interface, décision D21 : `scoring_<date>_contributions.parquet`, une ligne par compte et par variable d'origine.
+
+| Colonne | Type | Sens |
+| :--- | :--- | :--- |
+| `client_id` | chaîne | Identifiant du compte. |
+| `variable_origine` | chaîne | Variable d'origine, au sens de la décision D7. |
+| `libelle` | chaîne | Libellé métier préfixé par sa source. |
+| `contribution` | décimal | Contribution sommée par variable d'origine, biais exclu. |
+| `actionnable` | booléen | La variable peut occuper une case de motif, décision D19. |
+
 **Format** : trois fichiers par date sous `data/exports/<source>/`. `scoring_<date>.parquet` est la source de vérité et porte l'identité du lot dans ses métadonnées. `scoring_<date>.csv` est encodé en `utf-8-sig`, avec le séparateur `;` et la virgule décimale, pour Excel en français. `scoring_<date>.json` porte l'identité du lot suivie des lignes, pour un front dédié éventuel. Voir D20.

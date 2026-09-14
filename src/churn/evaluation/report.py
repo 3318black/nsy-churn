@@ -98,6 +98,25 @@ def write_evaluation_report(
     summary_path.write_text("\n".join(lines), encoding="utf-8")
     written.append(summary_path)
 
+    # The same measures as data files, so that the interface of lot 7 displays
+    # them without recomputing a single mean. Decision D21.
+    summary_csv_path = directory / "evaluation_summary.csv"
+    with summary_csv_path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(f"# {banner}\n")
+        summary.to_csv(handle, index=False)
+    written.append(summary_csv_path)
+
+    periods_csv_path = directory / "evaluation_precision_per_period.csv"
+    with periods_csv_path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(f"# {banner}\n")
+        periods = result.periods
+        if not periods.empty:
+            periods = periods.assign(
+                period_start=periods["period"].dt.start_time.dt.date.astype(str)
+            ).loc[:, ["fold", "scorer", "period_start", "precision"]]
+        periods.to_csv(handle, index=False)
+    written.append(periods_csv_path)
+
     if not result.periods.empty:
         figure, axes = plt.subplots(figsize=(11, 4.5))
         for scorer, frame in result.periods.groupby("scorer", sort=False):

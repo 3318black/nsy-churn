@@ -54,6 +54,14 @@ uv sync
 uv run pytest
 ```
 
+Pour produire les résultats et ouvrir l'interface, une fois le jeu KKBox préparé :
+
+```bash
+uv run python scripts/train_model.py --source kkbox       # évaluation et modèle
+uv run python -m churn.pipeline.run_scoring --source kkbox  # liste du lundi
+uv run streamlit run app/streamlit_app.py                  # interface, sur http://localhost:8501
+```
+
 ## Périmètre
 
 Contrat de données, générateur synthétique, adaptateur KKBox, construction du jeu d'apprentissage sans fuite temporelle, protocole d'évaluation, modélisation, explicabilité locale, export Parquet et CSV, interface Streamlit en lecture seule.

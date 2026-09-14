@@ -120,6 +120,7 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `models/explain.py` | TreeSHAP, agrégation, extraction du top 3 | N'écrit aucun fichier de sortie |
 | `pipeline/scoring.py` | Rang, décile, facteurs actionnables et identité du lot pour une date | N'écrit aucun fichier |
 | `pipeline/sinks.py` | Écriture vers une destination | Ne transforme aucune valeur |
+| `interface/readers.py` | Lecture des exports, contributions, rapports et historique pour l'interface | Ne calcule aucun score ni aucune mesure |
 | `app/streamlit_app.py` | Affichage des exports en lecture seule | N'entraîne rien, ne score rien, ne recalcule rien |
 
 Deux règles transverses. Aucune valeur métier en dur dans le code : tout paramètre passe par `config/config.yaml`. Aucun module ne fabrique un chemin de fichier lui-même : les chemins viennent de la configuration.
@@ -131,8 +132,8 @@ Deux règles transverses. Aucune valeur métier en dur dans le code : tout param
 Avant toute demande de revue :
 
 ```bash
-uv run ruff check src tests
-uv run ruff format --check src tests
+uv run ruff check src tests scripts app
+uv run ruff format --check src tests scripts app
 uv run mypy src
 uv run pytest -q
 ```
