@@ -11,9 +11,9 @@ Three rules drive this module.
    back to a hardcoded value would move a business parameter into the code,
    which ``AGENTS.md`` section 7 forbids.
 2. Cross validation at load time. For every source profile ``embargo_days``
-   must be greater than or equal to ``horizon_days``. A shorter embargo lets
-   the training target resolve inside the test period, which decision D4
-   rules out.
+   must be greater than or equal to ``horizon_days`` plus
+   ``confirmation_delay_days``. A shorter embargo lets the training target
+   resolve inside the test period, which decisions D4 and D24 rule out.
 3. Paths are exposed as :class:`~pathlib.Path` objects resolved against the
    project root, so that no module ever builds a file path on its own.
 """
@@ -106,6 +106,10 @@ class SourceProfile(_StrictModel):
     is_synthetic: bool
     horizon_days: int = Field(gt=0)
     embargo_days: int = Field(ge=0)
+    #: Days after a termination date before the termination is a known fact. On
+    #: KKBox a subscription terminates at its expiry, but only counts as churned
+    #: once the 30 days allowed to renew have passed. Decision D24.
+    confirmation_delay_days: int = Field(default=0, ge=0)
 
 
 class KkboxRawFiles(_StrictModel):
@@ -317,15 +321,17 @@ class AppConfig(_StrictModel):
     def _check_embargo_covers_horizon(self) -> Self:
         offenders = [
             f"profile '{name}': embargo_days ({profile.embargo_days}) is lower than "
-            f"horizon_days ({profile.horizon_days})"
+            f"horizon_days ({profile.horizon_days}) plus confirmation_delay_days "
+            f"({profile.confirmation_delay_days})"
             for name, profile in self.sources.as_mapping().items()
-            if profile.embargo_days < profile.horizon_days
+            if profile.embargo_days < profile.horizon_days + profile.confirmation_delay_days
         ]
         if offenders:
             message = (
-                "embargo_days must be greater than or equal to horizon_days for every "
-                "source profile, otherwise the training target resolves inside the test "
-                "period, see decision D4; " + "; ".join(offenders)
+                "embargo_days must be greater than or equal to horizon_days plus "
+                "confirmation_delay_days for every source profile, otherwise the training "
+                "target resolves inside the test period, see decisions D4 and D24; "
+                + "; ".join(offenders)
             )
             raise ValueError(message)
         return self

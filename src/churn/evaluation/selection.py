@@ -45,6 +45,8 @@ class SelectionSettings:
         horizon_days: days the target resolves over.
         embargo_days: days kept empty between inner training and validation.
         seed: seed of every fit.
+        confirmation_delay_days: days after a termination date before the
+            termination is a known fact, decision D24.
     """
 
     k: int
@@ -52,6 +54,7 @@ class SelectionSettings:
     horizon_days: int
     embargo_days: int
     seed: int
+    confirmation_delay_days: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +107,7 @@ def select_candidate[Candidate](
             n_splits=1,
             horizon_days=settings.horizon_days,
             embargo_days=settings.embargo_days,
+            confirmation_delay_days=settings.confirmation_delay_days,
         )
     except ValueError as error:
         return _fallback(candidates, str(error))

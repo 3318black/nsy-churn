@@ -92,6 +92,7 @@ def _load_training(
         observation_frequency=config.features.observation_frequency,
         windows_days=tuple(config.features.windows_days),
         resolution=resolution,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
     training = build_training_set(dataset, spec)
     logger.info(
@@ -114,6 +115,7 @@ def _selection_settings(config: AppConfig, description: SourceDescription) -> Se
         horizon_days=description.horizon_days,
         embargo_days=description.embargo_days,
         seed=config.project.random_seed,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
 
 
@@ -124,6 +126,7 @@ def _compare(config: AppConfig, description: SourceDescription, training: Traini
         n_splits=config.evaluation.n_splits,
         horizon_days=description.horizon_days,
         embargo_days=description.embargo_days,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
     selection = _selection_settings(config, description)
     candidates = param_candidates(config.model.param_grid)

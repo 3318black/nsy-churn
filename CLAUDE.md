@@ -5,7 +5,7 @@ Le manuel opératoire du projet est `AGENTS.md`. Lis-le en premier, intégraleme
 Ordre de lecture avant toute implémentation :
 
 1. `AGENTS.md`, le manuel opératoire
-2. `docs/decisions.md`, les décisions closes, de D1 à D20
+2. `docs/decisions.md`, les décisions closes, de D1 à D24
 3. `docs/data-contract.md`, la forme des données et la règle de non-fuite
 4. `docs/roadmap.md`, le lot en cours et ses critères d'acceptation
 

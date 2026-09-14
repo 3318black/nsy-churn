@@ -77,7 +77,7 @@ Production : `pandas`, `numpy`, `scikit-learn`, `xgboost`, `pydantic`, `pyarrow`
 
 ## 5. Décisions déjà prises
 
-Elles sont dans `docs/decisions.md`, de D1 à D20. Les sept qui cassent le plus souvent une implémentation :
+Elles sont dans `docs/decisions.md`, de D1 à D24. Les sept qui cassent le plus souvent une implémentation :
 
 - **D4** : découpage temporel avec embargo au moins égal à l'horizon. Jamais de `train_test_split` aléatoire sur ces données.
 - **D5** : `Precision@K` se calcule par période de scoring, puis se moyenne. Ce n'est pas un top K global.

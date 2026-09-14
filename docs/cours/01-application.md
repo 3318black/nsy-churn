@@ -144,9 +144,9 @@ La construction est découpée en étapes appelées **lots**. Voici leur état :
 | 5 | Modèle et explication des prédictions | Terminé |
 | 6 | Export des listes | Terminé |
 | 7 | Interface web | Terminé, mise en ligne en cours |
-| 8 | Présentation du projet | En cours |
+| 8 | Présentation du projet | Terminé, adresse en ligne à reporter |
 
-Le résultat principal à ce jour, mesuré sur les données KKBox passées : **sur 50 appels par semaine, le modèle désigne en moyenne 16 abonnés qui partiront dans les 30 jours, contre 7 avec la meilleure régression logistique et 5 si l'on appelle simplement les abonnés qui paient le plus.**
+Le résultat principal à ce jour, mesuré sur les données KKBox passées : **sur 50 appels par semaine, le modèle désigne en moyenne 14 abonnés qui partiront dans les 30 jours, contre 7 avec la meilleure régression logistique et 4 si l'on appelle simplement les abonnés qui paient le plus.**
 
 ---
 

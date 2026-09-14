@@ -18,7 +18,12 @@ sources:
     # Horizon impose par la definition officielle du churn : aucun abonnement
     # valide dans les 30 jours suivant l'expiration. Voir docs/dataset-kkbox.md.
     horizon_days: 30
-    embargo_days: 30
+    # La resiliation est datee a l'expiration, mais elle n'est un fait acquis
+    # qu'apres les 30 jours laisses pour renouveler. Decision D24.
+    confirmation_delay_days: 30
+    # Au moins l'horizon plus le delai de constat, sinon la cible d'apprentissage
+    # se resout pendant le test.
+    embargo_days: 60
     # Echantillonnage des comptes avant toute lecture des logs.
     sample_accounts: 50000
     # user_logs_v2.csv pese environ 30 Go, lecture par morceaux obligatoire.
@@ -40,6 +45,8 @@ sources:
     label: "Jeu synthetique genere localement"
     is_synthetic: true
     horizon_days: 60
+    # Une resiliation simulee est connue le jour meme.
+    confirmation_delay_days: 0
     embargo_days: 60
     n_accounts: 5000
     history_start: "2024-01-01"

@@ -223,7 +223,9 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 
 **Mesure complémentaire préalable, choix arrêté le 2026-09-14.** Avant d'écrire les résultats, une dernière mesure dans le protocole du lot 4 : une grille de réglages élargie vers des modèles plus simples, la sélection du lot 5 se logeant dans son coin le plus prudent, et une régression logistique mieux préparée, avec régularisation choisie et comptages transformés. Le but est que la comparaison publiée résiste à l'objection d'une ligne de base trop faible. Les chiffres retenus remplacent ceux du lot 5 dans `docs/resultats.md` s'ils changent.
 
-**Réalisée le 2026-09-14, décision D23.** La régression logistique réglée fait moins bien que la simple en tête de liste, 0,126 contre 0,149, et la grille élargie ne change pas le résultat au-delà du bruit, 0,323 contre 0,333. Le gain du modèle contre la plus forte des logistiques est de +0,176, positif sur les quatre plis. Les chiffres de référence du README sont ceux de cette mesure.
+**Réalisée le 2026-09-14, décision D23.** La régression logistique réglée fait moins bien que la simple en tête de liste, 0,126 contre 0,149, et la grille élargie ne change pas le résultat au-delà du bruit, 0,323 contre 0,333. Le gain du modèle contre la plus forte des logistiques est de +0,176, positif sur les quatre plis. Ces chiffres ont été remplacés le même jour.
+
+**Correction du 2026-09-14, décision D24.** En écrivant la définition exacte de la cible, un défaut est apparu : une résiliation KKBox était comptée à sa date, alors qu'elle n'est constatée que 30 jours plus tard. L'éligibilité, la règle d'issue connue, la purge et l'embargo sont corrigés, et la mesure refaite : Precision@50 de 0,274 pour XGBoost, 0,135 pour la régression logistique et 0,089 pour le tri par revenu. Les chiffres de référence du README sont ceux de cette mesure.
 
 **Plan imposé**
 
@@ -241,6 +243,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 2. un lecteur technique trouve l'embargo, la définition de la Precision@K et les lignes de base sans ouvrir le code
 3. aucune affirmation de performance n'est faite sans indiquer la source de données correspondante
 4. les limites sont écrites, pas éludées
+
+**Livré le 2026-09-14, hors adresse en ligne.** README réécrit selon ce plan, chapitre 12 et quiz de la partie 4 du cours. La section 7 du README attend l'adresse de l'application, reportée après la publication sur Streamlit Community Cloud.
 
 ---
 

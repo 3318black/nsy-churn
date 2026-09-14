@@ -49,11 +49,11 @@ Le bandeau est placé **avant** tout écran, dans le code. Il ne peut donc pas �
 C'est la page d'accueil, pensée pour quelqu'un qui découvre le projet en deux minutes.
 
 - **Le problème**, en trois phrases : une équipe ne peut appeler que 50 abonnés par semaine, lesquels choisir, et que leur dire ?
-- **Les chiffres clés**, lus dans le rapport d'évaluation : combien de départs réels se trouvent parmi les 50 appelés, pour le meilleur modèle, pour la plus forte des régressions logistiques et pour le tri par revenu. Sur KKBox : **16 départs** pour XGBoost, **7** pour la régression logistique, **5** pour le tri par revenu.
+- **Les chiffres clés**, lus dans le rapport d'évaluation : combien de départs réels se trouvent parmi les 50 appelés, pour le meilleur modèle, pour la plus forte des régressions logistiques et pour le tri par revenu. Sur KKBox : **14 départs** pour XGBoost, **7** pour la régression logistique, **4** pour le tri par revenu.
 - **Comment ça marche**, en quatre étapes : les données, un tableau construit sans tricher, un modèle évalué honnêtement, une liste expliquée.
 - **Pourquoi s'y fier** et les **limites assumées**, puis les liens vers le code, ce cours et les résultats détaillés.
 
-Les chiffres ne sont pas écrits dans le code de la page. Ils sont multipliés à partir de la précision du rapport : 0,3228 × 50 donne environ 16. Si le rapport change, la page change avec lui.
+Les chiffres ne sont pas écrits dans le code de la page. Ils sont multipliés à partir de la précision du rapport : 0,2737 × 50 donne environ 14. Si le rapport change, la page change avec lui.
 
 ### Écran 2 : la liste du lundi
 
@@ -69,7 +69,7 @@ C'est l'écran qu'un conseiller ouvre avant de décrocher son téléphone. Il r�
 
 **Que lui dire ?** Sous le rang, le décile et le revenu, une section « Que dire au téléphone » reprend ses motifs, et sous chacun, l'**action conseillée**. Par exemple :
 
-> **1. [PRODUIT] Fréquence d'usage**
+> **1. [PRODUCT] Fréquence d'usage**
 > Action conseillée : Vérifier si l'usage du service a changé
 
 Ces actions ne sont pas inventées par l'application. Elles viennent du même dictionnaire que les libellés des motifs, `config/feature_mapping.yaml`, présenté au chapitre 9. Un motif structurel, comme l'ancienneté, n'a pas d'action : il n'est de toute façon jamais affiché.
@@ -98,7 +98,7 @@ Seule la date d'inscription est gardée : c'est un fait figé du passé, vrai à
 
 - Trois indicateurs : le meilleur classement, le nombre de départs qu'il trouve sur 50 appels, et combien de fois il fait mieux que le tri par revenu.
 - Le tableau des huit classements du chapitre 8 : précision, écart type, rappel, ROC-AUC, lift.
-- La **courbe** de précision semaine par semaine, pour les classements choisis. Sur KKBox, on y voit XGBoost au-dessus à la fois de la régression logistique et du tri par revenu sur 75 des 80 semaines de test.
+- La **courbe** de précision semaine par semaine, pour les classements choisis. Sur KKBox, on y voit XGBoost au-dessus du hasard, du tri par revenu et des deux régressions logistiques sur 64 des 76 semaines de test.
 
 C'est l'argument technique central du projet, présenté de façon que chacun puisse le vérifier.
 
@@ -113,7 +113,7 @@ Pensez à un restaurant. La cuisine prépare les plats, la salle les sert. Si le
 Trois raisons concrètes :
 
 - **Une seule vérité.** Le chiffre affiché est exactement celui du fichier. Aucune formule parallèle ne peut diverger.
-- **La rapidité.** Lire un fichier prend un instant. Le scoring complet des 5 093 abonnés KKBox prend 25 secondes : le refaire à chaque clic rendrait l'application inutilisable.
+- **La rapidité.** Lire un fichier prend un instant. Le scoring complet des 5 093 abonnés KKBox du lot 6 a pris 25 secondes : le refaire à chaque clic rendrait l'application inutilisable.
 - **La sécurité.** Une interface publique qui ne contient aucun code d'entraînement ne peut pas, par erreur, modifier un modèle.
 
 Le profil de l'abonné n'enfreint pas la règle. Compter des jours actifs ou retrouver une dernière facture, c'est **lire** le journal, comme le fait l'historique. Aucun modèle n'intervient, et aucune mesure de performance n'est recalculée.
@@ -160,7 +160,7 @@ Les tests ne doivent pas dépendre des vrais fichiers de votre ordinateur, absen
 
 > **Dans les coulisses.** La première version du test « n'importe aucun code de scoring » cherchait simplement le texte `churn.pipeline.run_scoring` dans le fichier de l'application. Il a échoué : le texte apparaissait bien, mais dans la phrase qui indique à l'utilisateur quelle commande lancer, pas dans un import. Le test a été réécrit pour analyser les vrais imports, grâce à l'**arbre syntaxique** du fichier, la structure que Python construit en lisant le code. Un test trop naïf crie au loup, et un test qui crie au loup finit ignoré.
 
-Un autre test protège le lien entre les motifs et les actions. L'export écrit un motif sous la forme `[PRODUIT] Fréquence d'usage`, et l'interface cherche l'action sous exactement la même forme. Si l'un des deux changeait d'écriture, les actions disparaîtraient en silence. Le test fabrique un libellé avec la fonction de l'export et vérifie que l'interface lui trouve son action.
+Un autre test protège le lien entre les motifs et les actions. L'export écrit un motif sous la forme `[PRODUCT] Fréquence d'usage`, et l'interface cherche l'action sous exactement la même forme. Si l'un des deux changeait d'écriture, les actions disparaîtraient en silence. Le test fabrique un libellé avec la fonction de l'export et vérifie que l'interface lui trouve son action.
 
 ## 5. Mettre en ligne : une question de données, pas de technique
 

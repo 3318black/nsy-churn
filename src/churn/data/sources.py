@@ -55,6 +55,8 @@ class SourceDescription:
             report state it.
         horizon_days: prediction horizon of this source, in days.
         embargo_days: embargo between training and test, in days.
+        confirmation_delay_days: days after a termination date before the
+            termination is a known fact, decision D24.
     """
 
     key: str
@@ -62,6 +64,7 @@ class SourceDescription:
     is_synthetic: bool
     horizon_days: int
     embargo_days: int
+    confirmation_delay_days: int = 0
 
     @classmethod
     def from_profile(cls, key: str, profile: SourceProfile) -> SourceDescription:
@@ -72,6 +75,7 @@ class SourceDescription:
             is_synthetic=profile.is_synthetic,
             horizon_days=profile.horizon_days,
             embargo_days=profile.embargo_days,
+            confirmation_delay_days=profile.confirmation_delay_days,
         )
 
 

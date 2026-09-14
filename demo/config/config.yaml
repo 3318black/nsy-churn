@@ -10,7 +10,8 @@ sources:
     label: KKBox WSDM Churn Prediction Challenge
     is_synthetic: false
     horizon_days: 30
-    embargo_days: 30
+    confirmation_delay_days: 30
+    embargo_days: 60
     sample_accounts: 50000
     chunk_size: 1000000
     raw_files:
@@ -24,6 +25,7 @@ sources:
     label: Jeu synthetique genere localement
     is_synthetic: true
     horizon_days: 60
+    confirmation_delay_days: 0
     embargo_days: 60
     n_accounts: 5000
     history_start: '2024-01-01'

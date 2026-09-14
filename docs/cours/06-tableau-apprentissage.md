@@ -48,7 +48,7 @@ Parce que c'est exactement la situation réelle : chaque lundi, l'équipe se dem
 
 Une photo n'est prise que si elle a un sens. Un couple `(abonné, T0)` n'entre dans la grille que si quatre conditions sont réunies.
 
-1. **L'abonné est encore actif à `T0`.** Prédire le départ d'un abonné déjà parti n'a pas de sens.
+1. **L'abonné n'est pas encore connu comme parti à `T0`.** Prédire le départ d'un abonné dont on sait déjà qu'il est parti n'a pas de sens. Attention au mot « connu » : sur KKBox, un départ n'est constaté que 30 jours après l'expiration de l'abonnement, le temps de vérifier qu'il n'est pas renouvelé. Pendant ces 30 jours, l'abonné reste dans la grille, puisque personne ne sait encore s'il reviendra. Le chapitre 7 raconte comment cet oubli a été découvert.
 2. **Il a au moins 60 jours d'ancienneté.** Un compte trop récent n'a pas d'historique exploitable.
 3. **L'historique couvre au moins 90 jours**, la plus longue fenêtre de calcul. La grille commence donc 90 jours après le premier événement du journal.
 4. **L'abonné a au moins un événement avant `T0`.** Sinon, il est inscrit mais pas encore client.
@@ -61,7 +61,7 @@ La cible vaut 1 si le départ tombe **après `T0` et au plus tard 30 jours aprè
 
 Mais souvenez-vous de Chloé, dans l'exercice du chapitre 5. Pour un lundi trop proche de la fin des données, les 30 jours suivants ne sont pas encore connus. La réponse n'est pas 0, elle est **inconnue**.
 
-**Règle :** une ligne dont la fenêtre de 30 jours dépasse la fin de l'historique est **écartée**, jamais comptée à 0.
+**Règle :** une ligne dont la réponse n'est pas encore constatée à la fin de l'historique est **écartée**, jamais comptée à 0. Sur KKBox, la réponse est constatée 60 jours après `T0` : les 30 jours de la fenêtre, plus les 30 jours laissés pour renouveler.
 
 > **Attention.** Compter ces lignes à 0 revient à affirmer que l'abonné est resté, alors que personne ne le sait. L'erreur toucherait toujours les semaines les plus récentes, celles sur lesquelles on juge un modèle. C'est un biais invisible et systématique.
 
