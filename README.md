@@ -129,6 +129,12 @@ Adresse : publication en cours.
 
 L'application compte quatre écrans : la présentation du projet, la liste du lundi, la fiche d'un abonné et la performance du modèle. En ligne, l'accueil et l'écran de performance montrent les vrais résultats KKBox, qui ne sont que des moyennes. La liste et la fiche tournent sur des données simulées, sous un bandeau qui le signale. L'application lit le dossier `demo/`, reconstruit par `uv run python scripts/build_demo.py`.
 
+### Le cours en ligne
+
+Le cours pour débutant a sa propre application, `app/cours_app.py` : un menu qui garde la progression, des quiz corrigés avec l'explication de chaque réponse, et un glossaire où chercher un terme. Elle lit directement les fichiers de `docs/cours`, décision D25.
+
+Adresse : publication en cours.
+
 ### Reproduire
 
 ```bash
@@ -138,6 +144,7 @@ uv run python scripts/download_kkbox.py --with-logs --sample-size 10000
 uv run python scripts/train_model.py --source kkbox        # évaluation et modèle
 uv run python -m churn.pipeline.run_scoring --source kkbox  # liste du lundi
 uv run streamlit run app/streamlit_app.py                  # interface, sur http://localhost:8501
+uv run streamlit run app/cours_app.py                      # le cours, sans aucune donnée
 ```
 
 Le téléchargement demande un compte Kaggle, l'acceptation des règles de la compétition et un jeton d'API, détaillés dans `docs/dataset-kkbox.md`. Comptez près de 9 Go d'archives avec le journal d'écoute, une vingtaine de minutes pour préparer l'échantillon, et un quart d'heure pour l'évaluation et le modèle final. La graine du fichier de configuration fixe le hasard, et l'export est déterministe : deux exécutions produisent les mêmes fichiers.
@@ -154,7 +161,8 @@ Sur Streamlit Community Cloud, avec le compte GitHub propriétaire du dépôt :
    NSY_CHURN_ROOT = "demo"
    ```
 
-4. déployer, puis reporter l'adresse obtenue en tête de cette section.
+4. déployer, puis reporter l'adresse obtenue en tête de cette section ;
+5. pour le cours, recommencer avec le fichier `app/cours_app.py`, sans aucun secret, et reporter son adresse sous « Le cours en ligne ».
 
 ## Documentation
 
