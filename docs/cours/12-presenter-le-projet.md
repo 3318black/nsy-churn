@@ -134,6 +134,12 @@ Un secret est un réglage transmis à l'application par l'hébergeur, sans être
 
 > **Dans les coulisses.** Trois détails ont demandé une correction avant la mise en ligne. D'abord, la documentation de Streamlit ne dit pas clairement si un secret devient une variable d'environnement : l'application lit donc les deux. Ensuite, le chemin `demo` est relatif, et le serveur ne démarre pas forcément dans le dossier du dépôt : l'application le résout à partir de son propre emplacement. Enfin, le script qui construit `demo/` copiait d'abord le rapport d'évaluation au format texte, qui contient sa date de génération : deux constructions donnaient deux dossiers différents. Seuls les fichiers de données du rapport sont désormais publiés, et le dossier est identique à chaque construction.
 
+### Une seconde application, pour le cours
+
+Le cours que vous lisez est lui aussi publié, dans une seconde application Streamlit. Elle ne contient aucune copie du cours : elle lit les fichiers Markdown du dépôt, et ajoute ce qu'une page de texte ne sait pas faire, comme garder votre progression ou corriger un quiz. Des tests lisent les vrais fichiers du cours et échouent si l'un d'eux change de forme, par exemple un quiz dont la réponse n'est pas l'une des options proposées. C'est la décision D25.
+
+> **Dans les coulisses.** Deux schémas du cours sont écrits en Mermaid, un langage que GitHub dessine mais pas Streamlit. Charger Mermaid depuis un site extérieur aurait demandé d'exécuter du JavaScript dans la page, sans pouvoir le vérifier par un test. Les deux schémas sont donc traduits, par quelques dizaines de lignes de Python, en Graphviz, un autre langage de graphes que Streamlit dessine seul. La traduction ne comprend que les constructions utilisées par le cours et refuse toutes les autres : un nouveau genre de schéma fera échouer un test au lieu d'être mal dessiné.
+
 ---
 
 ## À vous de jouer

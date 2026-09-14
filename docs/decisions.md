@@ -420,6 +420,22 @@ Un test échoue si l'éligibilité, la règle d'issue connue, la purge ou la vé
 
 ---
 
+## D25. Le cours a sa propre application, qui lit les fichiers Markdown
+
+**Statut** : Actée le 2026-09-14 par le propriétaire du projet.
+
+Le cours pour débutant est publié dans une seconde application Streamlit, `app/cours_app.py`, distincte de la démonstration du produit. Trois formes ont été comparées : un écran de plus dans l'application existante, qui mêlait la démonstration et le cours ; un site statique MkDocs sur GitHub Pages, plus confortable à lire, mais qui demandait une dépendance, un workflow de publication et des quiz restés statiques ; une application dédiée, retenue.
+
+**Une seule source.** L'application lit `docs/cours` tel quel, par `churn.interface.course`. Chaque lot continue de n'écrire que le Markdown. Les formes lues, plan, correction, schémas, quiz et glossaire, sont vérifiées par `tests/test_course.py` sur les vrais fichiers : un changement de format fait échouer un test, pas une page.
+
+**Ce qu'elle ajoute.** Un menu avec la progression, les corrections dépliables, des quiz corrigés avec l'explication de chaque réponse, un glossaire filtrable, et un lien direct vers une leçon par `?lecon=`.
+
+**Schémas.** Les schémas Mermaid du cours sont traduits en Graphviz, que Streamlit dessine sans charger de script extérieur. Seuls les organigrammes simples utilisés par le cours sont compris, et toute autre construction lève une erreur.
+
+**Limites.** La progression vit dans la session du navigateur et se perd à la fermeture de la page. Une application gratuite de Streamlit Community Cloud s'endort faute de visites, et met quelques instants à se réveiller. Aucune dépendance n'est ajoutée.
+
+---
+
 ## Points ouverts
 
 | Réf | Question | Qui tranche | Bloque |

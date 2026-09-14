@@ -246,6 +246,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 
 **Livré le 2026-09-14, hors adresse en ligne.** README réécrit selon ce plan, chapitre 12 et quiz de la partie 4 du cours. La section 7 du README attend l'adresse de l'application, reportée après la publication sur Streamlit Community Cloud.
 
+**Application du cours, le 2026-09-14, décision D25.** Le cours pour débutant se lit aussi dans une seconde application Streamlit, `app/cours_app.py`, qui lit les fichiers Markdown tels quels et ajoute la progression, des quiz corrigés et un glossaire filtrable. Son adresse rejoindra celle de la démonstration dans le README.
+
 ---
 
 ## Lot 9. Industrialisation
