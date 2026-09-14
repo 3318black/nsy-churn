@@ -21,6 +21,9 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Contrôle par force brute** | Test qui recalcule les variables de la façon la plus naïve pour vérifier le calcul rapide. | 6 |
 | **Critère d'acceptation** | Condition précise et vérifiable qui doit être remplie pour qu'une étape soit terminée. | 2 |
 | **Décile de risque** | Rang d'un abonné parmi dix groupes de taille égale, du plus risqué, 1, au moins risqué, 10. | 1 |
+| **Délai de constat** | Temps qui sépare la date d'un départ du moment où ce départ devient un fait acquis. Sur KKBox, 30 jours, le délai laissé pour renouveler. | 7 |
+| **Déploiement** | Publication d'une application sur un serveur, pour la rendre accessible à tous par une adresse web. | 12 |
+| **Dérive documentaire** | Écart qui s'installe entre un document et le code ou les mesures qu'il décrit, faute de test pour le signaler. | 12 |
 | **Destination** | Composant qui écrit la liste dans un format donné : Parquet, CSV ou JSON. On en ajoute une sans toucher au reste. | 10 |
 | **Déterministe** | Se dit d'un calcul qui donne exactement le même résultat chaque fois qu'on le relance sur les mêmes données. | 10 |
 | **Embargo** | Intervalle vide laissé entre l'apprentissage et le test, au moins égal à l'horizon de prédiction. | 7 |
@@ -52,10 +55,13 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Pull request** | Demande d'intégration d'une branche dans la version principale, relue avant d'être fusionnée. | 2 |
 | **Purge** | Retrait des lignes d'apprentissage dont la cible se résout après le début du test. | 7 |
 | **Rappel au rang K** | Parmi tous les abonnés partis, part de ceux qui figuraient dans les listes des K premiers. | 7 |
+| **README** | Fichier de présentation d'un dépôt, affiché par GitHub sous la liste des fichiers. Souvent le seul document lu. | 12 |
 | **Registre des décisions** | Fichier qui consigne chaque choix important avec sa date, son statut et son motif. | 2 |
 | **Régularisation** | Pénalité qui retient les poids d'un modèle pour l'empêcher d'apprendre le bruit des données. Sa force est un réglage à choisir. | 8 |
 | **Régression logistique** | Modèle simple qui pondère les variables, les additionne et transforme la somme en score entre 0 et 1. | 7 |
+| **Reproductibilité** | Possibilité pour quelqu'un d'autre de refaire un calcul et d'obtenir les mêmes résultats, grâce aux versions figées, à la graine et aux commandes publiées. | 12 |
 | **ROC-AUC** | Mesure de la capacité à placer les abonnés qui partent au-dessus de ceux qui restent. 0,5 correspond au hasard, 1 à un classement parfait. | 7 |
+| **Secret** | Réglage transmis à une application par son hébergeur, sans être écrit dans le code. | 12 |
 | **Sentinelle anti-fuite** | Test qui supprime les événements à partir de la date d'observation et vérifie qu'aucune variable ne change. | 6 |
 | **Seuil de signification** | Valeur qu'une contribution doit dépasser pour devenir un motif affiché. | 9 |
 | **Taux de base** | Proportion d'exemples positifs dans les données. Ici, environ 2 % des lignes de la grille. | 7 |

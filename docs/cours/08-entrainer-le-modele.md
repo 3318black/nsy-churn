@@ -131,7 +131,7 @@ On sépare donc les deux questions. Retirer un ingrédient à la fois pour mesur
 
 ### Résultats sur KKBox
 
-Six classements, mêmes plis, mêmes semaines, même K. Moyenne sur les quatre plis :
+Six classements, mêmes plis, mêmes semaines, même K. Moyenne sur les quatre plis, mesure du lot 5 ; les chiffres de référence actuels, un peu plus bas, sont donnés à la fin de la section 6 :
 
 | Classement | Precision@50 | Sur 50 appels, départs trouvés |
 | :--- | ---: | ---: |
@@ -200,6 +200,20 @@ Revenir à l'ancienne grille parce qu'elle donne 0,333 au lieu de 0,323 serait *
 
 > **À retenir.** Quand une amélioration évidente n'améliore rien, on l'écrit. Et on compare toujours un modèle à la plus forte des lignes de base mesurées, jamais à la plus faible.
 
+### Les chiffres de référence, après une dernière correction
+
+Ces chiffres ont encore bougé. En écrivant la présentation du projet, un défaut de protocole est apparu : un départ KKBox était compté à sa date, alors qu'il n'est constaté que 30 jours plus tard. Le chapitre 7 raconte la découverte, et la décision D24 la correction. Toute la comparaison a été refaite.
+
+| Classement | Precision@50 | Sur 50 appels, départs trouvés |
+| :--- | ---: | ---: |
+| Hasard | 0,019 | 1 |
+| Tri par revenu | 0,089 | 4 |
+| Régression logistique réglée | 0,118 | 6 |
+| Régression logistique | 0,135 | 7 |
+| **XGBoost, toutes variables** | **0,274** | **14** |
+
+Les conclusions tiennent : le gain du modèle reste positif sur les quatre plis, +0,133 à variables égales, et le gain des données d'écoute reste non établi, +0,008. Mais le premier pli est nettement plus faible, 0,165 : avec un embargo allongé à 60 jours, son apprentissage devient trop court pour la validation interne, et le modèle y garde le réglage le plus simple de sa grille.
+
 ---
 
 ## À vous de jouer
@@ -236,7 +250,7 @@ Revenir à l'ancienne grille parce qu'elle donne 0,333 au lieu de 0,323 serait *
 - Un **arbre de décision** pose une suite de questions. Le **gradient boosting** enchaîne des centaines d'arbres qui corrigent les erreurs des précédents.
 - Les **hyperparamètres** se choisissent sur une **validation** interne à l'apprentissage, jamais sur le test.
 - Une **ablation** sépare l'apport du modèle de l'apport des données.
-- Sur KKBox, le **gain du modèle est établi** : 16 départs trouvés sur 50 appels, contre 7 pour la meilleure régression logistique et 5 pour le tri par revenu. Le **gain des données d'écoute ne l'est pas**.
+- Sur KKBox, le **gain du modèle est établi** : 14 départs trouvés sur 50 appels, contre 7 pour la meilleure régression logistique et 4 pour le tri par revenu, mesure de référence de la décision D24. Le **gain des données d'écoute ne l'est pas**.
 - Une **régression logistique réglée** et une **grille élargie** n'ont rien changé : l'objection d'une ligne de base trop faible ne tient pas.
 
 **Chapitre précédent :** [7. Évaluer honnêtement](07-evaluer-honnetement.md) · **Chapitre suivant :** [9. Expliquer chaque prédiction](09-expliquer-les-predictions.md)

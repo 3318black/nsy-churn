@@ -122,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         observation_frequency=config.features.observation_frequency,
         windows_days=tuple(config.features.windows_days),
         resolution=config.features.datetime_resolution,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
     scoring_date = pd.Timestamp(arguments.date, tz="UTC") if arguments.date else None
     scoring = build_scoring_set(dataset, spec, scoring_date)

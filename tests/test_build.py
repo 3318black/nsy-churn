@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pandas as pd
 import pytest
 
@@ -259,3 +261,65 @@ def test_an_account_never_observed_before_t0_is_absent(spec: GridSpec) -> None:
     assert not rows_b.empty
     assert (rows_b > first_seen_b).all()
     assert (grid.loc[grid["client_id"] == "A", "T0"] < first_seen_b).any()
+
+
+#: Days a KKBox termination needs to be confirmed, decision D24.
+CONFIRMATION_DELAY = 30
+
+
+def test_an_account_stays_eligible_until_its_termination_is_confirmed(spec: GridSpec) -> None:
+    """Decision D24: inside the confirmation delay, nobody knows the account has left.
+
+    The subscription ends on Monday 15 September 2025 and the departure is
+    confirmed 30 days later. The Mondays in between stay in the grid, as
+    negatives, since the termination is dated before them.
+    """
+    delayed = replace(spec, confirmation_delay_days=CONFIRMATION_DELAY)
+    accounts = _one_account("2025-01-01", "2025-09-15")
+    events = _events_between("2025-01-01", "2025-12-31")
+    grid = build_grid(_dataset_of(accounts, events), delayed)
+
+    termination = pd.Timestamp("2025-09-15", tz="UTC")
+    confirmed = termination + pd.Timedelta(days=CONFIRMATION_DELAY)
+    waiting = grid.loc[(grid["T0"] >= termination) & (grid["T0"] < confirmed)]
+    assert not waiting.empty, "the confirmation delay must be exercised"
+    assert (waiting["y"] == 0).all()
+    assert (grid["T0"] < confirmed).all()
+
+
+def test_eligibility_ignores_terminations_not_yet_confirmed(
+    dataset: Dataset, spec: GridSpec
+) -> None:
+    """Whether a pair enters the grid cannot depend on what happens after its ``T0``.
+
+    Erasing every termination changes the target. It must leave the pairs whose
+    termination was not yet confirmed exactly where they were.
+    """
+    delayed = replace(spec, confirmation_delay_days=CONFIRMATION_DELAY)
+    ends = dataset.accounts["date_resiliation"]
+    erased = replace(
+        dataset, accounts=dataset.accounts.assign(date_resiliation=ends.mask(ends.notna()))
+    )
+    grid = build_grid(dataset, delayed)
+    unknown = build_grid(erased, delayed)
+
+    ended = unknown["client_id"].map(dataset.accounts.set_index("client_id")["date_resiliation"])
+    pending = ended.isna() | (ended + pd.Timedelta(days=CONFIRMATION_DELAY) > unknown["T0"])
+    assert ((ended <= unknown["T0"]) & pending).any(), "the delay must be exercised"
+    keys = ["client_id", "T0"]
+    assert (
+        grid[keys].reset_index(drop=True).equals(unknown.loc[pending, keys].reset_index(drop=True))
+    )
+
+
+def test_a_pair_is_kept_only_once_its_outcome_is_confirmed(spec: GridSpec) -> None:
+    """The unknown outcome rule counts the confirmation delay too."""
+    delayed = replace(spec, confirmation_delay_days=CONFIRMATION_DELAY)
+    events = _events_between("2025-01-01", "2025-12-31")
+    grid = build_grid(_dataset_of(_one_account("2025-01-01"), events), delayed)
+
+    history_end = events["event_ts"].max()
+    known = pd.Timedelta(days=delayed.horizon_days + CONFIRMATION_DELAY)
+    assert not grid.empty
+    assert (grid["T0"] + known <= history_end).all()
+    assert grid["T0"].max() + pd.Timedelta(days=7) + known > history_end

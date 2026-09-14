@@ -44,6 +44,8 @@ Le générateur écrit deux tables brutes : un référentiel de comptes et un jo
 
 Le découpage entraînement et test est strictement chronologique, avec un embargo au moins égal à l'horizon de prédiction. Cet horizon vaut 60 jours par défaut et 30 jours sur la source KKBox, où il découle de la définition officielle du churn. Le rapport entre les deux est vérifié au démarrage, la valeur absolue ne l'est pas. Toute observation d'entraînement dont la fenêtre de cible franchit la frontière de test est purgée.
 
+**Précision du 2026-09-14, décision D24.** La cible se résout quand elle est constatée, pas quand elle est datée. Sur KKBox, une résiliation n'est acquise que 30 jours après sa date : l'embargo couvre l'horizon et ce délai de constat réunis, soit 60 jours, et la purge compte à partir de la date de constat.
+
 **Motif** : détaillé en section 3.1 de `revue-spec-v3.md`. Sans embargo, la cible d'entraînement se résout dans la période de test et la validation devient mensongère.
 
 **Test de non-régression associé** : `tests/test_split.py` doit échouer si une observation d'entraînement possède une date de résolution de cible postérieure au début de la période de test.
@@ -265,7 +267,9 @@ Deux règles d'éligibilité s'ajoutent à la construction de la grille. Les dat
 
 Une fois la grille recalée sur le journal, 20,5 % des lignes restantes portaient encore un compte sans aucun événement antérieur à `T0`, c'est-à-dire inscrit mais pas encore client. Prédire la résiliation de quelqu'un qui n'a jamais souscrit n'a pas de sens pour une équipe de rétention.
 
-**Absence de fuite.** La date du premier événement est lue strictement avant `T0`. L'éligibilité d'un couple ne dépend donc d'aucun fait postérieur à sa date d'observation.
+**Absence de fuite.** La date du premier événement est lue strictement avant `T0`. Cette règle-ci ne dépend donc d'aucun fait postérieur à sa date d'observation.
+
+*Rectification du 2026-09-14.* Cette décision affirmait que l'éligibilité entière ne dépendait d'aucun fait postérieur à `T0`. C'était faux sur KKBox pour la règle du compte actif, qui lisait la date de résiliation brute alors qu'une résiliation n'y est constatée que 30 jours plus tard. Corrigé par la décision D24.
 
 **Garde-fou ajouté.** Le protocole d'évaluation refuse désormais un pli dont l'entraînement ne contient qu'une seule classe, au lieu de laisser une ligne de base produire des scores constants en silence.
 
@@ -375,6 +379,44 @@ Deux changements ont été décidés avant de mesurer, pour que leur résultat n
 - **La grille élargie ne change pas le résultat au-delà du bruit** : Precision@50 de 0,323 pour XGBoost contre 0,333 au lot 5, soit −0,010 en moyenne par pli pour un écart type de 0,014. La sélection par pli retient plus souvent la profondeur 3 ou 100 arbres. Le modèle final, entraîné sur toute la grille, garde profondeur 4, 300 arbres et taux 0,05 : même version, même export.
 
 **Ce qui est retenu.** La grille élargie reste en configuration, puisqu'elle était décidée avant la mesure. Revenir à la grille réduite parce qu'elle donne un meilleur chiffre en test reviendrait à choisir un réglage en regardant le test. Les chiffres de référence du projet deviennent ceux de cette mesure.
+
+---
+
+## D24. Une résiliation compte à la date où elle est constatée
+
+**Statut** : Actée le 2026-09-14 par le propriétaire du projet, après mesure. Précise D4, rectifie D17, et remplace les chiffres de référence de D23.
+
+**Le défaut.** Sur KKBox, `date_resiliation` porte l'expiration de l'abonnement non renouvelé. Le départ n'est pourtant acquis que 30 jours plus tard, une fois écoulé le délai laissé pour renouveler. Deux règles lisaient la date brute :
+
+- l'éligibilité écartait un compte dès son expiration, alors que personne ne pouvait savoir, pendant ces 30 jours, s'il renouvellerait ;
+- la règle d'issue connue, la purge et l'embargo supposaient la cible connue à `T0 + 30 jours`, alors qu'elle ne l'est qu'à `T0 + 60 jours`.
+
+Aucun test ne pouvait le voir : la sentinelle tronque le journal, et le test du référentiel ne réécrit que les colonnes dont la grille n'a pas besoin. Le défaut a été trouvé en relisant le code pour écrire la définition exacte de la cible dans le README.
+
+**Exposition mesurée avant correction**, sur la grille de la mesure D23 :
+
+- 10 095 couples écartés pendant le délai, soit 2,46 % de la grille, pour 2 494 comptes. Réintégrés et scorés par le modèle final, ils occupaient en moyenne de 2,6 à 4,9 des 50 places selon le pli, jusqu'à 18, sur 78 des 80 semaines de test ;
+- de 93 à 216 positifs d'apprentissage par pli n'étaient constatés qu'après le début du test.
+
+**La correction.** Chaque source déclare un délai de constat, `confirmation_delay_days` : 30 jours sur KKBox, 0 sur le jeu synthétique, où une résiliation est connue le jour même.
+
+- Un compte reste éligible tant que `date_resiliation` augmentée du délai n'est pas passée. Pendant le délai, il porte la cible 0, puisque sa résiliation est datée avant `T0`.
+- Un couple n'est gardé que si `T0 + horizon + délai` tient dans l'historique.
+- La purge compte à partir de `T0 + horizon + délai`, et la configuration refuse un embargo inférieur à l'horizon augmenté du délai. L'embargo KKBox passe à 60 jours.
+
+Un test échoue si l'éligibilité, la règle d'issue connue, la purge ou la vérification de la configuration revient à la date brute.
+
+**Résultat sur KKBox, mesure du 14 septembre après correction.** Grille de 400 059 couples et 8 881 positifs, 76 semaines de test.
+
+- XGBoost atteint une Precision@50 de 0,274, contre 0,323 avant correction, soit environ 14 départs sur 50 appels. Régression logistique 0,135, tri par revenu 0,089, hasard 0,019.
+- **Au pli 0, la sélection des réglages n'a pas pu se faire.** Avec 60 jours d'embargo, la validation interne des 39 617 lignes de ce pli ne laisse aucune ligne d'entraînement, et chaque modèle réglé garde le premier réglage de sa grille, comme le prévoit D23. XGBoost y tombe à 0,165. Sur les plis 1 à 3, il vaut 0,310 en moyenne, contre 0,330 avant correction sur des périodes voisines : c'est l'ordre de grandeur de l'exposition estimée.
+- Le gain du modèle sur la régression logistique, à variables financières égales, vaut +0,133, positif sur les quatre plis, avec un écart type de 0,070. Il n'est que de +0,033 au pli 0.
+- Le gain du journal d'écoute reste non établi : +0,008, positif sur deux plis sur quatre.
+- Le modèle final, entraîné sur toute la grille, retient profondeur 6, 100 arbres et taux 0,05 : version `0.1.0-1799d44265f1`.
+
+**Ce qui est retenu.** Les chiffres de cette mesure deviennent la référence du projet, pli 0 compris. Changer le repli de la sélection, le nombre de plis ou la date de départ après avoir vu ce résultat reviendrait à choisir le protocole en regardant le test.
+
+**Limite qui demeure.** L'adaptateur KKBox retire du journal les événements postérieurs à `date_resiliation`. Un compte dans son délai de constat perd donc ses écoutes des jours qui suivent son expiration, selon un fait que personne ne connaissait encore à `T0`. L'effet n'est pas mesuré.
 
 ---
 

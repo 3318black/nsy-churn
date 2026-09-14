@@ -147,6 +147,8 @@ Le fichier `train_v2.csv` fournit l'étiquette pour un unique mois de référenc
 
 **La cible est donc reconstruite depuis `transactions`**, pour chaque date d'observation `T0` : le compte est en churn si son abonnement expire après `T0` et qu'aucune transaction de renouvellement n'intervient dans les 30 jours suivant cette expiration.
 
+**Une résiliation datée n'est pas encore une résiliation connue.** `date_resiliation` porte la date d'expiration de l'abonnement non renouvelé. Mais le départ n'est acquis que 30 jours plus tard, une fois passé le délai laissé pour renouveler. Entre les deux, personne ne sait si l'abonné reviendra. La source déclare donc un délai de constat de 30 jours, `confirmation_delay_days`, que l'éligibilité, la règle d'issue connue et la purge prennent en compte. Sans lui, la grille écartait 10 095 couples d'abonnés encore libres de renouveler, et la purge gardait des positifs constatés pendant le test. Voir décision D24.
+
 **Référence mesurée le 7 septembre 2026 :** `train_v2.csv` contient 970 960 comptes, dont 87 330 en churn, soit un taux de 8,99 %.
 
 **La règle n'est pas devinable, et elle n'a pas été devinée.** La compétition livre son propre labelleur, `WSDMChurnLabeller.scala`. Cinq de ses points auraient été faux sous n'importe quelle hypothèse raisonnable.
@@ -173,7 +175,7 @@ Ce contrôle est le point technique le plus démonstratif du projet. Reconstruir
 | :--- | :--- |
 | Ancienneté minimale de 60 jours | Conservée, calculée depuis `registration_init_time` |
 | Historique minimal de 90 jours | Conservée |
-| Compte actif à `T0` | Aucune résiliation antérieure à `T0` et au moins une transaction strictement antérieure à `T0`. Les inscriptions remontent à 2004 quand les transactions commencent en 2015, voir décision D17 |
+| Compte actif à `T0` | Aucune résiliation constatée avant `T0`, c'est-à-dire expiration non renouvelée augmentée de 30 jours, et au moins une transaction strictement antérieure à `T0`. Les inscriptions remontent à 2004 quand les transactions commencent en 2015, voir décisions D17 et D24 |
 | Purge des identifiants manquants | `msno` absent des trois fichiers après jointure |
 
 ## 7. Mise en place de l'accès Kaggle

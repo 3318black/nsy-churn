@@ -7,16 +7,24 @@ Three rules decide what enters the grid, and each exists to keep the answer
 honest.
 
 Eligibility
-    The account is active at ``T0``, old enough to carry a usable history, and
-    the journal covers the longest window a feature needs. An account observed
-    for a week produces features that are structurally empty.
+    The account is not yet known to have terminated at ``T0``, old enough to
+    carry a usable history, and the journal covers the longest window a feature
+    needs. An account observed for a week produces features that are
+    structurally empty.
 Target
     ``y = 1`` when the termination falls in ``]T0, T0 + horizon]``.
 Unknown outcome
-    A pair whose target window runs past the end of the history is **dropped**,
-    never labelled zero. Labelling it zero would state that the account survived,
-    when the truth is that nobody knows yet. The bias would land entirely on the
-    most recent period, precisely the one a model is judged on.
+    A pair whose outcome is not yet confirmed at the end of the history is
+    **dropped**, never labelled zero. Labelling it zero would state that the
+    account survived, when the truth is that nobody knows yet. The bias would land
+    entirely on the most recent period, precisely the one a model is judged on.
+
+**A termination is a fact only once it is confirmed.** On KKBox a subscription
+terminates at its expiry, but only counts as churned once the 30 days allowed to
+renew have passed. Until then nobody knows whether the account will renew, so
+eligibility and the unknown outcome rule wait for ``confirmation_delay_days``.
+Reading the bare termination date excluded, on 2026-09-14, 10,095 pairs of
+accounts still free to renew, 2.46% of the KKBox grid. Decision D24.
 
 The central rule of the module, and of the project: a feature computed for
 ``(client_id, T0)`` uses only events strictly earlier than ``T0``, and no column
@@ -64,6 +72,8 @@ class GridSpec:
         observation_frequency: pandas frequency of the ``T0`` dates.
         windows_days: window lengths the features are built on.
         resolution: timestamp resolution.
+        confirmation_delay_days: days after a termination date before the
+            termination is a known fact, zero when it is known at once.
     """
 
     horizon_days: int
@@ -72,6 +82,7 @@ class GridSpec:
     observation_frequency: str
     windows_days: tuple[int, ...]
     resolution: DatetimeResolution = "us"
+    confirmation_delay_days: int = 0
 
 
 class TrainingSet(NamedTuple):
@@ -139,8 +150,13 @@ def _eligible_pairs(dataset: Dataset, spec: GridSpec, dates: pd.DatetimeIndex) -
         on="client_id",
     )
 
+    # An account leaves the grid once its termination is confirmed, not at the
+    # date the termination is later dated to. Inside the confirmation delay nobody
+    # can tell a renewal from a departure, so excluding the account would read
+    # the future.
     ended = grid["date_resiliation"]
-    active = ended.isna() | (ended > grid["T0"])
+    confirmed = ended + pd.Timedelta(days=spec.confirmation_delay_days)
+    active = ended.isna() | (confirmed > grid["T0"])
     old_enough = (grid["T0"] - grid["date_debut_contrat"]) >= minimum_age
 
     # An account enters the grid only once it has been observed, with at least
@@ -183,12 +199,13 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
 
     history_end = dataset.events["event_ts"].max()
     horizon = pd.Timedelta(days=spec.horizon_days)
+    known = horizon + pd.Timedelta(days=spec.confirmation_delay_days)
     grid = _eligible_pairs(dataset, spec, dates)
 
-    # A pair whose target window runs past the end of the history has an unknown
-    # outcome, not a negative one. Labelling it zero would bias the most recent
-    # period, which is exactly the one a model is judged on.
-    grid = grid.loc[(grid["T0"] + horizon) <= history_end].copy()
+    # A pair whose outcome is confirmed only after the end of the history has an
+    # unknown outcome, not a negative one. Labelling it zero would bias the most
+    # recent period, which is exactly the one a model is judged on.
+    grid = grid.loc[(grid["T0"] + known) <= history_end].copy()
     ended = grid["date_resiliation"]
     grid["y"] = (ended.notna() & (ended > grid["T0"]) & (ended <= grid["T0"] + horizon)).astype(
         "int64"

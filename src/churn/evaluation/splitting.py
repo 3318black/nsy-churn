@@ -1,10 +1,10 @@
 """Chronological folds with an embargo and a purge.
 
-The target of a pair ``(client_id, T0)`` resolves at ``T0 + horizon``. A plain
-chronological cut therefore lets the last training rows carry an outcome that
-happens inside the test period: the model learns from facts belonging to the
-window it is asked to predict. Validation then looks excellent and production
-does not.
+The target of a pair ``(client_id, T0)`` is known at ``T0 + horizon``, plus the
+delay a termination needs to be confirmed. A plain chronological cut therefore
+lets the last training rows carry an outcome that happens inside the test period:
+the model learns from facts belonging to the window it is asked to predict.
+Validation then looks excellent and production does not.
 
 Two guards close that door, and both are applied rather than one assumed to
 imply the other.
@@ -13,6 +13,12 @@ Embargo
     No training date may fall within ``embargo_days`` of the test start.
 Purge
     No training row may have its target resolve at or after the test start.
+
+**A target resolves when it is confirmed, not when it is dated.** On KKBox a
+termination is dated at the expiry of the subscription, and confirmed only once
+the 30 days allowed to renew have passed. A purge counted from the date alone
+kept, on 2026-09-14, between 93 and 216 training positives per fold that were
+confirmed after their test period had started. Decision D24.
 
 **Why not scikit-learn's ``TimeSeriesSplit`` and its ``gap``.** The review of the
 initial specification pointed to that parameter. It counts *samples*, not days,
@@ -58,6 +64,7 @@ def temporal_folds(
     n_splits: int,
     horizon_days: int,
     embargo_days: int,
+    confirmation_delay_days: int = 0,
 ) -> list[TemporalFold]:
     """Cut the grid into chronological folds with an embargo and a purge.
 
@@ -70,19 +77,24 @@ def temporal_folds(
         n_splits: number of folds.
         horizon_days: days the target resolves over.
         embargo_days: days kept empty between training and test.
+        confirmation_delay_days: days after a termination date before the
+            termination is a known fact.
 
     Returns:
         The folds, in chronological order. A fold left without any training row
         is skipped rather than returned empty.
 
     Raises:
-        ValueError: when the embargo is shorter than the horizon, or when the
-            grid holds too few dates for the requested folds.
+        ValueError: when the embargo is shorter than the horizon plus the
+            confirmation delay, or when the grid holds too few dates for the
+            requested folds.
     """
-    if embargo_days < horizon_days:
+    resolution_days = horizon_days + confirmation_delay_days
+    if embargo_days < resolution_days:
         message = (
-            f"embargo_days ({embargo_days}) is shorter than horizon_days ({horizon_days}): "
-            f"training targets would resolve inside the test period"
+            f"embargo_days ({embargo_days}) is shorter than horizon_days ({horizon_days}) "
+            f"plus confirmation_delay_days ({confirmation_delay_days}): training targets "
+            f"would resolve inside the test period"
         )
         raise ValueError(message)
 
@@ -91,9 +103,8 @@ def temporal_folds(
         message = f"{len(dates)} observation dates cannot yield {n_splits} folds"
         raise ValueError(message)
 
-    horizon = pd.Timedelta(days=horizon_days)
     embargo = pd.Timedelta(days=embargo_days)
-    resolved = observation_dates + horizon
+    resolved = observation_dates + pd.Timedelta(days=resolution_days)
     blocks = np.array_split(np.arange(len(dates)), n_splits + 1)
 
     folds: list[TemporalFold] = []
@@ -122,6 +133,7 @@ def count_resolution_overlaps(
     fold: TemporalFold,
     observation_dates: pd.Series,
     horizon_days: int,
+    confirmation_delay_days: int = 0,
 ) -> int:
     """Count the training rows whose target resolves at or after the test start.
 
@@ -132,9 +144,12 @@ def count_resolution_overlaps(
         fold: the fold to check.
         observation_dates: the ``T0`` column of the grid.
         horizon_days: days the target resolves over.
+        confirmation_delay_days: days after a termination date before the
+            termination is a known fact.
 
     Returns:
         The number of leaking training rows.
     """
-    resolved = observation_dates.iloc[fold.train_index] + pd.Timedelta(days=horizon_days)
+    resolution = pd.Timedelta(days=horizon_days + confirmation_delay_days)
+    resolved = observation_dates.iloc[fold.train_index] + resolution
     return int((resolved >= fold.test_start).sum())

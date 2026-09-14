@@ -46,7 +46,7 @@ Et surtout, une question posée par le développeur dès le premier tour n'avait
 
 ### Le registre des décisions
 
-Chaque choix important du projet est consigné dans un fichier, `docs/decisions.md`. Chaque décision porte un numéro, une date, un statut et surtout un **motif**. Le projet en compte dix-huit à ce jour, de D1 à D18.
+Chaque choix important du projet est consigné dans un fichier, `docs/decisions.md`. Chaque décision porte un numéro, une date, un statut et surtout un **motif**. Le projet en compte vingt-quatre à ce jour, de D1 à D24.
 
 Par exemple, la décision D4 dit : *« Le découpage entre apprentissage et test est strictement chronologique, avec une période tampon au moins égale à l'horizon de prédiction. »* Suit l'explication de ce qui arriverait sans elle.
 

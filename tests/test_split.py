@@ -103,3 +103,38 @@ def test_every_row_of_a_test_date_is_in_the_test_set() -> None:
     for fold in temporal_folds(dates, n_splits=3, horizon_days=HORIZON, embargo_days=HORIZON):
         tested = dates.iloc[fold.test_index]
         assert (tested.value_counts() == 7).all()
+
+
+def test_the_purge_waits_for_the_confirmation_of_the_target() -> None:
+    """Decision D24: a termination dated inside the horizon is known a delay later."""
+    dates = _weekly_dates()
+    delay = 30
+    folds = temporal_folds(
+        dates,
+        n_splits=4,
+        horizon_days=HORIZON,
+        embargo_days=HORIZON + delay,
+        confirmation_delay_days=delay,
+    )
+    assert folds
+    for fold in folds:
+        assert count_resolution_overlaps(fold, dates, HORIZON, delay) == 0
+
+
+def test_folds_ignoring_the_confirmation_delay_are_caught() -> None:
+    """Folds cut on the horizon alone leak once the delay is counted, as on KKBox."""
+    dates = _weekly_dates()
+    folds = temporal_folds(dates, n_splits=4, horizon_days=HORIZON, embargo_days=HORIZON)
+    assert any(count_resolution_overlaps(fold, dates, HORIZON, 30) > 0 for fold in folds)
+
+
+def test_an_embargo_shorter_than_the_confirmed_horizon_is_refused() -> None:
+    """The embargo must cover the horizon and the confirmation delay together."""
+    with pytest.raises(ValueError, match="confirmation_delay_days"):
+        temporal_folds(
+            _weekly_dates(),
+            n_splits=3,
+            horizon_days=HORIZON,
+            embargo_days=HORIZON + 15,
+            confirmation_delay_days=30,
+        )

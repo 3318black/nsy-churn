@@ -80,6 +80,8 @@ temps ────────────────────────�
 
 La **purge** complète l'embargo : on retire de l'apprentissage toute ligne dont la cible se résout après le début du test. Les deux protections sont appliquées ensemble, pour ne pas supposer que l'une implique l'autre.
 
+> **Dans les coulisses.** Pendant longtemps, l'embargo KKBox a duré 30 jours, la longueur de l'horizon. C'était un oubli, trouvé en écrivant la présentation du projet. Sur KKBox, un départ est **daté** à l'expiration de l'abonnement, mais il n'est **constaté** que 30 jours plus tard, quand le délai laissé pour renouveler est écoulé. La réponse d'une ligne n'est donc connue qu'à `T0 + 60 jours`. Avec 30 jours d'embargo, entre 93 et 216 départs d'apprentissage par pli n'étaient constatés qu'après le début du test. Le même oubli faisait sortir de la grille, dès leur expiration, des abonnés encore libres de renouveler : 10 095 lignes. Depuis la décision D24, l'embargo KKBox dure 60 jours, la purge compte à partir de la date de constat, et un abonné reste dans la grille tant que son départ n'est pas constaté.
+
 > **Dans les coulisses.** L'outil standard de scikit-learn pour les séries temporelles propose un paramètre d'écart, `gap`. La première revue du projet l'avait présenté comme la solution. C'était inexact : ce paramètre compte des **lignes**, pas des **jours**. Or la grille contient un nombre variable d'abonnés par semaine. Le découpage est donc fait sur les dates, dans `src/churn/evaluation/splitting.py`, et l'erreur de la revue a été corrigée par écrit.
 
 ### Quatre plis, une fenêtre qui s'agrandit
@@ -125,13 +127,13 @@ Voici les lignes de base mesurées sur KKBox, sur la grille actuelle, moyennées
 
 | Classement | Precision@50 | Sur 50 appels, départs trouvés | ROC-AUC |
 | :--- | ---: | ---: | ---: |
-| Hasard | 0,021 | 1 | 0,50 |
-| Tri par revenu | 0,098 | 5 | 0,69 |
-| Régression logistique | 0,149 | 7 | 0,72 |
+| Hasard | 0,019 | 1 | 0,50 |
+| Tri par revenu | 0,089 | 4 | 0,68 |
+| Régression logistique | 0,135 | 7 | 0,72 |
 
 Le hasard retombe bien sur le taux de base : la mesure est cohérente. La régression logistique fait mieux que le tri par revenu. C'est la barre que le modèle du chapitre 8 doit franchir.
 
-Ces chiffres ne sont pas ceux mesurés à l'origine au lot 4. Ils ont été **remesurés** au lot 5, après la correction d'une fuite et l'ajout du journal d'écoute complet. Le chapitre 8 explique pourquoi, et `docs/resultats.md` conserve les deux mesures.
+Ces chiffres ne sont pas ceux mesurés à l'origine au lot 4. Ils ont été **remesurés** au lot 5, après la correction d'une fuite et l'ajout du journal d'écoute complet, puis une dernière fois après la correction du délai de constat, décision D24. Le chapitre 8 explique pourquoi, et `docs/resultats.md` conserve toutes les mesures.
 
 ---
 

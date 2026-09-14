@@ -34,6 +34,8 @@ Cette commande :
 
 Sur KKBox, elle a scoré **5 093 abonnés** au lundi 27 mars 2017, dernière date que permettent les données, en 25 secondes.
 
+> **Attention.** Les chiffres de ce chapitre sont ceux du lot 6, avec le premier modèle. Depuis la correction racontée au chapitre 7, décision D24, la liste du 27 mars compte **5 165 abonnés** : les 72 de plus sont des abonnés dont le départ n'est pas encore constaté. Le détail de la liste actuelle figure dans `docs/resultats.md`.
+
 > **Attention.** La commande refuse d'utiliser un modèle entraîné sur une autre source. Un modèle appris sur les données fictives du chapitre 4 produirait, sur les vrais abonnés, une liste d'apparence sérieuse et sans aucune valeur.
 
 ## 2. Scorer un jour où personne ne connaît la fin

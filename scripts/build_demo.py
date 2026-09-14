@@ -125,6 +125,7 @@ def _build_simulated_chain(demo: AppConfig) -> list[Path]:
         observation_frequency=demo.features.observation_frequency,
         windows_days=tuple(demo.features.windows_days),
         resolution=demo.features.datetime_resolution,
+        confirmation_delay_days=profile.confirmation_delay_days,
     )
     training = build_training_set(dataset, spec)
     selection = SelectionSettings(
@@ -133,11 +134,16 @@ def _build_simulated_chain(demo: AppConfig) -> list[Path]:
         horizon_days=profile.horizon_days,
         embargo_days=profile.embargo_days,
         seed=seed,
+        confirmation_delay_days=profile.confirmation_delay_days,
     )
     candidates = param_candidates(demo.model.param_grid)
 
     folds = temporal_folds(
-        training.grid["T0"], demo.evaluation.n_splits, profile.horizon_days, profile.embargo_days
+        training.grid["T0"],
+        demo.evaluation.n_splits,
+        profile.horizon_days,
+        profile.embargo_days,
+        profile.confirmation_delay_days,
     )
     scorers: list[Scorer] = [*default_baselines(seed), XGBoostScorer(candidates, selection)]
     result = evaluate_scorers(training, folds, scorers, selection.k, selection.frequency)

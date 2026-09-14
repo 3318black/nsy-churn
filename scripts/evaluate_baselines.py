@@ -66,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         observation_frequency=config.features.observation_frequency,
         windows_days=tuple(config.features.windows_days),
         resolution=resolution,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
     training = build_training_set(dataset, spec)
     logger.info(
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
         n_splits=config.evaluation.n_splits,
         horizon_days=description.horizon_days,
         embargo_days=description.embargo_days,
+        confirmation_delay_days=description.confirmation_delay_days,
     )
     result = evaluate_scorers(
         training,

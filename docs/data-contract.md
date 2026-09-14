@@ -76,7 +76,7 @@ Le jeu d'apprentissage est une grille de couples `(client_id, T0)`. Les dates `T
 
 Un couple `(client_id, T0)` entre dans la grille si et seulement si les quatre conditions suivantes sont réunies à `T0` :
 
-1. le compte est actif, c'est-à-dire `date_resiliation` absente ou postérieure à `T0`
+1. le compte n'est pas encore connu comme résilié, c'est-à-dire `date_resiliation` absente, ou `date_resiliation` augmentée du délai de constat de la source postérieure à `T0`. Le délai de constat est nul quand une résiliation est connue le jour même ; il vaut 30 jours sur KKBox, où un départ n'est acquis qu'après la période laissée pour renouveler. Voir décision D24
 2. l'ancienneté du compte atteint au moins 60 jours, soit `T0 - date_debut_contrat >= 60 jours`
 3. l'historique du journal couvre au moins la plus longue fenêtre de calcul de variables, soit 90 jours : les dates d'observation commencent au premier événement du journal augmenté de cette profondeur, jamais à la plus ancienne inscription
 4. le compte présente au moins un événement strictement antérieur à `T0`, faute de quoi il est inscrit mais pas encore client. Voir décision D17
@@ -85,7 +85,9 @@ Un couple `(client_id, T0)` entre dans la grille si et seulement si les quatre c
 
 `y = 1` si `date_resiliation` tombe dans l'intervalle ouvert à gauche et fermé à droite `]T0, T0 + 60 jours]`. Sinon `y = 0`.
 
-Un couple `(client_id, T0)` dont la fenêtre de cible dépasse la fin de l'historique disponible est écarté, car sa cible est inconnue et non pas nulle. Confondre les deux introduit un biais systématique en fin de période.
+Un couple `(client_id, T0)` dont la cible n'est pas encore constatée à la fin de l'historique disponible, soit `T0 + horizon + délai de constat` au-delà de cette fin, est écarté, car sa cible est inconnue et non pas nulle. Confondre les deux introduit un biais systématique en fin de période.
+
+La cible d'un couple est donc un fait acquis à `T0 + horizon + délai de constat`. C'est cette date, et non `T0 + horizon`, que la purge du découpage temporel compare au début du test, et l'embargo doit couvrir l'horizon et le délai réunis. Voir décisions D4 et D24.
 
 ### 3.3 Règle de non-fuite
 

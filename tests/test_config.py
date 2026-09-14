@@ -151,17 +151,32 @@ def test_embargo_shorter_than_horizon_fails_and_names_the_profile(
     assert "horizon_days" in message
 
 
-def test_embargo_equal_to_horizon_is_accepted(
+def test_embargo_equal_to_the_confirmed_horizon_is_accepted(
     raw_config: dict[str, Any],
     write_yaml: WriteYaml,
 ) -> None:
     """The rule is an inequality, not a strict one."""
     for profile in raw_config["sources"].values():
-        profile["embargo_days"] = profile["horizon_days"]
+        delay = profile.get("confirmation_delay_days", 0)
+        profile["embargo_days"] = profile["horizon_days"] + delay
 
     loaded = load_config(write_yaml(raw_config))
 
-    assert loaded.sources.kkbox.embargo_days == loaded.sources.kkbox.horizon_days
+    kkbox = loaded.sources.kkbox
+    assert kkbox.embargo_days == kkbox.horizon_days + kkbox.confirmation_delay_days
+
+
+def test_an_embargo_ignoring_the_confirmation_delay_fails(
+    raw_config: dict[str, Any],
+    write_yaml: WriteYaml,
+) -> None:
+    """Decision D24: a KKBox termination is confirmed 30 days after its date."""
+    profile = raw_config["sources"]["kkbox"]
+    assert profile["confirmation_delay_days"] > 0
+    profile["embargo_days"] = profile["horizon_days"]
+
+    with pytest.raises(ConfigError, match="confirmation_delay_days"):
+        load_config(write_yaml(raw_config))
 
 
 def test_unknown_active_source_fails(raw_config: dict[str, Any], write_yaml: WriteYaml) -> None:

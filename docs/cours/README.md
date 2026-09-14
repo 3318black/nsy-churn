@@ -38,7 +38,7 @@ Trois types d'encadrés ponctuent le texte :
 - **Attention** : un piège fréquent ;
 - **Dans les coulisses** : ce qui s'est réellement passé pendant le projet, erreurs comprises.
 
-Durée totale estimée des parties écrites : environ 5 heures.
+Durée totale estimée : environ 7 heures, quiz compris.
 
 ## Plan du cours
 
@@ -74,9 +74,9 @@ Durée totale estimée des parties écrites : environ 5 heures.
 | Chapitre | Durée |
 | :--- | ---: |
 | [10. Livrer la liste du lundi : l'export](10-livrer-la-liste.md) | 30 min |
-| [11. Montrer les résultats : l'interface web](11-interface-web.md) | 30 min |
-
-Chapitre à venir avec le lot 8 : la présentation du projet, puis le quiz de la partie 4.
+| [11. Montrer les résultats : l'interface web](11-interface-web.md) | 35 min |
+| [12. Présenter le projet : le README et la mise en ligne](12-presenter-le-projet.md) | 30 min |
+| [Quiz de la partie 4](quiz-partie-4.md) | 10 min |
 
 ### Annexe
 
