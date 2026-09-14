@@ -37,6 +37,7 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Horizon de prédiction** | Durée sur laquelle porte la prédiction. Ici, 30 jours. | 5 |
 | **Hyperparamètre** | Réglage d'un modèle choisi avant l'apprentissage, comme le nombre d'arbres. | 8 |
 | **Intégration continue** | Exécution automatique des tests et contrôles à chaque envoi de code, sur une machine neutre. | 2 |
+| **Interface en lecture seule** | Application qui affiche des résultats sans jamais les calculer ni les modifier. | 11 |
 | **JSON** | Format texte structuré, natif du web, qui range des données en paires nom et valeur. | 10 |
 | **Ligne de base** | Méthode simple qui sert de point de comparaison : hasard, tri par revenu, régression logistique. | 7 |
 | **Lift** | Nombre de fois qu'une méthode fait mieux qu'une méthode de référence. | 7 |
@@ -63,6 +64,7 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Validation** | Période découpée dans les données d'apprentissage pour choisir les réglages, sans toucher au test. | 8 |
 | **Valeurs de Shapley** | Répartition équitable, entre les variables, de l'écart entre le score d'un abonné et le score moyen. | 9 |
 | **Variable** | Colonne qui décrit la situation d'un exemple, comme le nombre de jours d'écoute sur 30 jours. | 6 |
+| **Variable d'environnement** | Réglage transmis à un programme par le système, sans modifier son code. Les tests s'en servent pour pointer l'interface vers un dossier temporaire. | 11 |
 | **Variable d'origine** | Variable métier dont dérivent plusieurs colonnes, par exemple les fenêtres d'un même type d'événement. | 9 |
 
 **Retour au** [sommaire du cours](README.md)

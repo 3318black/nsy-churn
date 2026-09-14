@@ -1,6 +1,6 @@
 """Destinations of a scoring batch, decision D8.
 
-A destination writes what it receives and never transforms a value. Three are
+A destination writes what it receives and never transforms a value. Four are
 provided.
 
 Parquet
@@ -15,6 +15,9 @@ JSON
     For a dedicated front end, should one ever read the export without touching
     the pipeline, decision D15. The batch identity and the source travel with the
     rows.
+Contributions
+    The contribution of every origin variable for every account, in Parquet, so
+    that the interface of lot 7 explains a rank without recomputing it, D21.
 
 **Adding a destination means implementing :class:`Sink`, nothing else.** The
 pipeline takes any sequence of sinks. A test checks it with a destination that
@@ -28,14 +31,17 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 from churn.config import ExportConfig
+from churn.pipeline.schemas import CONTRIBUTIONS_SUFFIX, EXPORT_FILE_PREFIX, PARQUET_METADATA_KEY
 from churn.pipeline.scoring import ScoringBatch
 
 __all__ = [
     "PARQUET_METADATA_KEY",
+    "ContributionsSink",
     "CsvSink",
     "JsonSink",
     "ParquetSink",
@@ -45,9 +51,6 @@ __all__ = [
     "export_stem",
     "write_batch",
 ]
-
-#: Key under which the batch identity is stored in the Parquet metadata.
-PARQUET_METADATA_KEY = b"nsy_churn"
 
 
 class Sink(Protocol):
@@ -62,7 +65,7 @@ class Sink(Protocol):
 
 def export_stem(batch: ScoringBatch) -> str:
     """Return the file name of a batch, without extension."""
-    return f"scoring_{batch.date_scoring.isoformat()}"
+    return f"{EXPORT_FILE_PREFIX}{batch.date_scoring.isoformat()}"
 
 
 def batch_identity(batch: ScoringBatch) -> dict[str, object]:
@@ -71,27 +74,42 @@ def batch_identity(batch: ScoringBatch) -> dict[str, object]:
         "batch_run_id": str(batch.batch_run_id),
         "date_scoring": batch.date_scoring.isoformat(),
         "model_version": batch.model_version,
+        "significance_threshold": batch.significance_threshold,
         "source_label": batch.source_label,
         "is_synthetic": batch.is_synthetic,
         "row_count": len(batch.rows),
     }
 
 
+def _write_parquet(frame: pd.DataFrame, batch: ScoringBatch, path: Path) -> Path:
+    """Write a frame as Parquet, with the batch identity in the file metadata."""
+    table = pa.Table.from_pandas(frame, preserve_index=False)
+    metadata = dict(table.schema.metadata or {})
+    identity = json.dumps(batch_identity(batch), sort_keys=True)
+    metadata[PARQUET_METADATA_KEY] = identity.encode("utf-8")
+    pq.write_table(table.replace_schema_metadata(metadata), path)
+    return path
+
+
 class ParquetSink:
-    """Writes the batch as Parquet, the source of truth."""
+    """Writes the rows as Parquet, the source of truth."""
 
     name = "parquet"
 
     def write(self, batch: ScoringBatch, directory: Path) -> Path:
         """Write the rows, with the batch identity in the file metadata."""
-        path = directory / f"{export_stem(batch)}.parquet"
-        table = pa.Table.from_pandas(batch.rows, preserve_index=False)
-        metadata = dict(table.schema.metadata or {})
-        metadata[PARQUET_METADATA_KEY] = json.dumps(batch_identity(batch), sort_keys=True).encode(
-            "utf-8"
-        )
-        pq.write_table(table.replace_schema_metadata(metadata), path)
-        return path
+        return _write_parquet(batch.rows, batch, directory / f"{export_stem(batch)}.parquet")
+
+
+class ContributionsSink:
+    """Writes the contributions as Parquet, for the interface, decision D21."""
+
+    name = "contributions"
+
+    def write(self, batch: ScoringBatch, directory: Path) -> Path:
+        """Write the contributions next to the rows, under the same identity."""
+        path = directory / f"{export_stem(batch)}{CONTRIBUTIONS_SUFFIX}.parquet"
+        return _write_parquet(batch.contributions, batch, path)
 
 
 class CsvSink:
@@ -146,11 +164,12 @@ class JsonSink:
 
 
 def default_sinks(export: ExportConfig) -> list[Sink]:
-    """Return the three destinations of the export, configured."""
+    """Return the four destinations of the export, configured."""
     return [
         ParquetSink(),
         CsvSink(export.csv_encoding, export.csv_separator, export.csv_decimal),
         JsonSink(),
+        ContributionsSink(),
     ]
 
 

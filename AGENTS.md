@@ -49,7 +49,7 @@ Le raisonnement détaillé appartient au fichier de prompt. Le message de fin re
 
 - Jamais de commit ni de push direct sur `main`. Une branche par lot, nommée `lot-<n>-<sujet>`, puis une pull request.
 - Aucun trailer d'attribution dans les messages de commit ni dans les descriptions de pull request, sauf autorisation explicite demandée au préalable.
-- Aucune donnée, aucun modèle sérialisé, aucun rapport généré dans le suivi de version. Voir `.gitignore`.
+- Aucune donnée, aucun modèle sérialisé, aucun rapport généré dans le suivi de version. Voir `.gitignore`. Seule exception : `demo/`, racine de la démonstration en ligne, régénérée par `scripts/build_demo.py` et limitée à des données simulées et à des agrégats KKBox, décision D22.
 - Les messages de commit et la documentation sont rédigés en français, avec une ponctuation correcte. Le tiret cadratin employé pour accoler une explication est proscrit : construis la phrase, ou fais-en deux.
 - Le code, les noms de variables, les docstrings et les messages de journalisation sont en anglais. La documentation et les libellés destinés au métier sont en français.
 
@@ -120,6 +120,7 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `models/explain.py` | TreeSHAP, agrégation, extraction du top 3 | N'écrit aucun fichier de sortie |
 | `pipeline/scoring.py` | Rang, décile, facteurs actionnables et identité du lot pour une date | N'écrit aucun fichier |
 | `pipeline/sinks.py` | Écriture vers une destination | Ne transforme aucune valeur |
+| `interface/readers.py` | Lecture des exports, contributions, rapports et historique pour l'interface | Ne calcule aucun score ni aucune mesure |
 | `app/streamlit_app.py` | Affichage des exports en lecture seule | N'entraîne rien, ne score rien, ne recalcule rien |
 
 Deux règles transverses. Aucune valeur métier en dur dans le code : tout paramètre passe par `config/config.yaml`. Aucun module ne fabrique un chemin de fichier lui-même : les chemins viennent de la configuration.
@@ -131,8 +132,8 @@ Deux règles transverses. Aucune valeur métier en dur dans le code : tout param
 Avant toute demande de revue :
 
 ```bash
-uv run ruff check src tests
-uv run ruff format --check src tests
+uv run ruff check src tests scripts app
+uv run ruff format --check src tests scripts app
 uv run mypy src
 uv run pytest -q
 ```

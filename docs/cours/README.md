@@ -74,8 +74,9 @@ Durée totale estimée des parties écrites : environ 5 heures.
 | Chapitre | Durée |
 | :--- | ---: |
 | [10. Livrer la liste du lundi : l'export](10-livrer-la-liste.md) | 30 min |
+| [11. Montrer les résultats : l'interface web](11-interface-web.md) | 30 min |
 
-Chapitres à venir, écrits au fil des lots 7 et 8 : l'interface web, la présentation du projet, puis le quiz de la partie 4.
+Chapitre à venir avec le lot 8 : la présentation du projet, puis le quiz de la partie 4.
 
 ### Annexe
 

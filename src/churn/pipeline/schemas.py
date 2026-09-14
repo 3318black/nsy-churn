@@ -16,7 +16,16 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
-__all__ = ["EXPORT_COLUMNS", "FACTOR_COLUMNS", "ExportRow", "validate_export"]
+__all__ = [
+    "CONTRIBUTIONS_SUFFIX",
+    "CONTRIBUTION_COLUMNS",
+    "EXPORT_COLUMNS",
+    "EXPORT_FILE_PREFIX",
+    "FACTOR_COLUMNS",
+    "PARQUET_METADATA_KEY",
+    "ExportRow",
+    "validate_export",
+]
 
 #: Number of risk deciles.
 _DECILES = 10
@@ -48,6 +57,26 @@ EXPORT_COLUMNS: Final[tuple[str, ...]] = tuple(ExportRow.model_fields)
 FACTOR_COLUMNS: Final[tuple[str, ...]] = tuple(
     column for column in EXPORT_COLUMNS if column.startswith("facteur_risque_")
 )
+
+#: Columns of the contributions file: one row per account and origin variable.
+#: The interface of lot 7 reads them to show why an account ranks where it does,
+#: without recomputing anything. Decision D21.
+CONTRIBUTION_COLUMNS: Final[tuple[str, ...]] = (
+    "client_id",
+    "variable_origine",
+    "libelle",
+    "contribution",
+    "actionnable",
+)
+
+#: Prefix of every export file name, followed by the scoring date.
+EXPORT_FILE_PREFIX: Final = "scoring_"
+
+#: Suffix that tells the contributions file apart from the rows file.
+CONTRIBUTIONS_SUFFIX: Final = "_contributions"
+
+#: Key under which the batch identity is stored in the Parquet metadata.
+PARQUET_METADATA_KEY: Final = b"nsy_churn"
 
 _ROWS: TypeAdapter[list[ExportRow]] = TypeAdapter(list[ExportRow])
 

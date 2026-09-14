@@ -319,6 +319,42 @@ Quatre règles fixent la forme de l'export.
 
 ---
 
+## D21. L'interface lit des fichiers, elle ne calcule rien
+
+**Statut** : Actée le 2026-09-14, au démarrage du lot 7.
+
+Tout ce qu'affiche l'application Streamlit est lu dans des fichiers produits par le pipeline. Elle n'importe aucun code d'entraînement, de variables ou de scoring, ce qu'un test vérifie sur l'arbre syntaxique de ses imports.
+
+**Ce que le pipeline écrit en plus.** La fiche d'un compte doit montrer la contribution de chaque facteur, et la courbe de performance la précision de chaque semaine. Aucune des deux ne se trouvait dans un fichier. Deux ajouts les rendent lisibles sans recalcul :
+
+- à côté de chaque export, `scoring_<date>_contributions.parquet`, une ligne par compte et par variable d'origine, avec son libellé, sa contribution et son caractère actionnable. Le seuil de signification rejoint l'identité du lot, dans les métadonnées ;
+- à côté du rapport d'évaluation, `evaluation_summary.csv` et `evaluation_precision_per_period.csv`, chacun ouvert par la ligne qui nomme sa source.
+
+**L'historique d'un compte s'arrête strictement avant la date de scoring.** Montrer les événements qui ont suivi afficherait ce que le modèle ne pouvait pas savoir, et inviterait à lire le futur dans le classement.
+
+**Séparation du code.** La lecture des fichiers vit dans `churn.interface.readers`, testable sans Streamlit. L'application, dans `app/`, ne fait qu'afficher. Elle se teste sans navigateur avec `streamlit.testing.v1.AppTest`, sur une racine de projet temporaire désignée par la variable d'environnement `NSY_CHURN_ROOT`.
+
+**Mise en ligne publique.** Streamlit Community Cloud installe les dépendances depuis `uv.lock`, mais l'application en ligne devrait lire des fichiers dérivés de KKBox, dont le journal d'écoute. Les règles de la compétition encadrent l'usage et la redistribution des données, et leur texte n'a pas pu être relu automatiquement. Le choix des données publiées, point ouvert O5, a été tranché par le propriétaire du projet : décision D22.
+
+---
+
+## D22. La démonstration en ligne publie des agrégats KKBox et une chaîne simulée
+
+**Statut** : Actée le 2026-09-14 par le propriétaire du projet. Tranche le point ouvert O5.
+
+L'interface en ligne ne publie aucune donnée individuelle KKBox : ni export, ni contributions, ni journal, ni liste de comptes. Elle publie :
+
+- les deux fichiers de mesures agrégées du rapport d'évaluation KKBox, une ligne par classement ou par classement et par semaine ;
+- une chaîne simulée complète de 300 comptes, journal, export, contributions et rapport, pour parcourir la liste et la fiche d'un compte sous le bandeau des données simulées.
+
+**Motif.** Les règles de la compétition encadrent l'usage et la redistribution des données, et leur texte n'a pas pu être vérifié. Les mesures agrégées ne décrivent aucun abonné et portent l'argument central du projet. Les identifiants et les historiques d'écoute sont écartés par prudence.
+
+**Mise en œuvre.** Le dossier `demo/` est une racine de projet complète, construite par `scripts/build_demo.py`, qui refuse de copier un fichier portant une colonne d'identifiant. L'application en ligne le lit par la variable `NSY_CHURN_ROOT`, déclarée dans les secrets de Streamlit Community Cloud et résolue depuis la racine du dépôt. Sa configuration renseigne `interface.missing_export_notice`, qui explique, à la place de la liste KKBox, pourquoi elle n'est pas publiée. Deux tests gardent la règle : les seuls fichiers KKBox de `demo/` sont les deux agrégats, et tout identifiant publié suit le format du générateur synthétique.
+
+**Exception au suivi de version.** `demo/` est le seul dossier de données versionné, parce qu'une application en ligne lit ses fichiers depuis le dépôt. Il ne contient que des données simulées et des agrégats.
+
+---
+
 ## Points ouverts
 
 | Réf | Question | Qui tranche | Bloque |
@@ -327,5 +363,6 @@ Quatre règles fixent la forme de l'export.
 | O2 | Capacité hebdomadaire réelle de l'équipe commerciale, qui fixe K | Métier | Le calibrage de la métrique, pas le code |
 | O3 | Horizon de 60 jours : confirmé par le délai réel d'intervention commerciale ? | Métier | Le paramètre d'embargo et la construction de la cible |
 | O4 | Accès Kaggle : compte, acceptation des règles et jeton d'API | Utilisateur | Le lot 2 de la roadmap |
+| O5 | Données publiables par l'interface en ligne, au regard des règles de la compétition KKBox | Utilisateur | Tranché le 2026-09-14 : décision D22 |
 
 Les trois premiers points ne bloquent pas le démarrage : les lots 0 et 1 se construisent avec les valeurs par défaut du fichier de configuration, et un changement de valeur ne demande aucune réécriture. Le quatrième, O4, bloque le lot 2 et doit être levé avant la fin du lot 1.

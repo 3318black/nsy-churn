@@ -41,7 +41,12 @@ from churn.models.train import (
     train_model,
 )
 from churn.pipeline.run_scoring import check_model_source, latest_model_folder
-from churn.pipeline.schemas import EXPORT_COLUMNS, FACTOR_COLUMNS, validate_export
+from churn.pipeline.schemas import (
+    CONTRIBUTION_COLUMNS,
+    EXPORT_COLUMNS,
+    FACTOR_COLUMNS,
+    validate_export,
+)
 from churn.pipeline.scoring import (
     ExportSettings,
     ScoringBatch,
@@ -303,7 +308,7 @@ def test_two_runs_write_identical_files(
     for run in ("first", "second"):
         scored = score_accounts(build_scoring_set(dataset, spec), model, mapping, settings)
         written.append(write_batch(scored, tmp_path / run, default_sinks(config.export)))
-    assert len(written[0]) == 3
+    assert len(written[0]) == 4
     for first, second in zip(written[0], written[1], strict=True):
         assert first.name == second.name
         assert first.read_bytes() == second.read_bytes(), f"{first.name} differs between runs"
@@ -431,3 +436,31 @@ def test_a_decimal_mark_equal_to_the_separator_is_refused(
     raw_config["export"]["csv_decimal"] = raw_config["export"]["csv_separator"]
     with pytest.raises(ConfigError, match="csv_decimal"):
         load_config(write_yaml(raw_config))
+
+
+def test_contributions_explain_every_scored_account(batch: ScoringBatch) -> None:
+    """Decision D21: the interface explains a rank without recomputing it."""
+    contributions = batch.contributions
+    assert tuple(contributions.columns) == CONTRIBUTION_COLUMNS
+    per_account = contributions.groupby("client_id").size()
+    assert set(per_account.index) == set(batch.rows["client_id"])
+    assert len(set(per_account)) == 1, "every account carries every origin variable"
+    structural = contributions["variable_origine"].isin(["mrr", "anciennete_jours"])
+    assert not contributions.loc[structural, "actionnable"].any()
+
+
+def test_the_first_factor_is_the_strongest_significant_actionable_contribution(
+    batch: ScoringBatch,
+) -> None:
+    """What the interface shows and what the export says must agree."""
+    contributions = batch.contributions
+    for position in range(min(10, len(batch.rows))):
+        row = batch.rows.iloc[position]
+        mine = contributions.loc[contributions["client_id"] == row["client_id"]]
+        candidates = mine.loc[
+            mine["actionnable"]
+            & (mine["contribution"] > 0)
+            & (mine["contribution"] > batch.significance_threshold)
+        ].sort_values(["contribution", "variable_origine"], ascending=[False, True], kind="stable")
+        expected = "" if candidates.empty else candidates.iloc[0]["libelle"]
+        assert row["facteur_risque_1"] == expected

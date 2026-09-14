@@ -1,6 +1,6 @@
 """Scoring of one date: ranks, deciles, actionable factors and batch identity.
 
-Three choices shape the export, each recorded in the decisions register.
+Four choices shape the export, each recorded in the decisions register.
 
 Actionable factors only, decision D19
     A factor with no lever, such as the account age or its revenue, still weighs
@@ -14,12 +14,16 @@ A deterministic batch identity, decision D20
 Rank and decile, never a percentage, decision D6
     The raw score is kept in a technical column. The business reads a rank and
     a decile.
+Contributions travel with the rows, decision D21
+    The interface shows why an account ranks where it does. It may not recompute
+    anything, so every contribution summed by origin variable is exported next to
+    the rows, with the significance threshold that filtered the factors.
 """
 
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from datetime import date
 
@@ -28,9 +32,14 @@ import pandas as pd
 
 from churn.config import FeatureMappingEntry
 from churn.features.build import ScoringSet
-from churn.models.explain import aggregate_by_origin, factor_labels, top_factors
+from churn.models.explain import aggregate_by_origin, check_mapping, factor_labels, top_factors
 from churn.models.registry import TrainedModel, training_fingerprint
-from churn.pipeline.schemas import EXPORT_COLUMNS, FACTOR_COLUMNS, validate_export
+from churn.pipeline.schemas import (
+    CONTRIBUTION_COLUMNS,
+    EXPORT_COLUMNS,
+    FACTOR_COLUMNS,
+    validate_export,
+)
 
 __all__ = [
     "BATCH_NAMESPACE",
@@ -74,17 +83,21 @@ class ScoringBatch:
 
     Attributes:
         rows: the exported rows, in contract order and output sort.
+        contributions: one row per account and origin variable, decision D21.
         batch_run_id: identifier of the run, written on every row.
         date_scoring: the scoring date.
         model_version: version of the model, written on every row.
+        significance_threshold: threshold the factors were filtered with.
         source_label: label of the data source.
         is_synthetic: whether the data is simulated.
     """
 
     rows: pd.DataFrame
+    contributions: pd.DataFrame
     batch_run_id: uuid.UUID
     date_scoring: date
     model_version: str
+    significance_threshold: float
     source_label: str
     is_synthetic: bool
 
@@ -126,9 +139,47 @@ def risk_deciles(ranks: np.ndarray, total: int) -> np.ndarray:
     return np.clip(np.ceil(ranks * _DECILES / total), 1, _DECILES).astype("int64")
 
 
-def _empty_rows() -> pd.DataFrame:
-    """Return an export frame without any row, carrying every contract column."""
-    return pd.DataFrame({column: pd.Series([], dtype="object") for column in EXPORT_COLUMNS})
+def _empty_frame(columns: tuple[str, ...]) -> pd.DataFrame:
+    """Return a frame without any row, carrying the given columns."""
+    return pd.DataFrame({column: pd.Series([], dtype="object") for column in columns})
+
+
+def _contribution_rows(
+    aggregated: pd.DataFrame,
+    client_ids: np.ndarray,
+    mapping: Mapping[str, FeatureMappingEntry],
+    actionable: Collection[str],
+) -> pd.DataFrame:
+    """Return the contributions in long form, one row per account and origin.
+
+    Args:
+        aggregated: contributions summed by origin, one row per scored account.
+        client_ids: identifier of each row of ``aggregated``.
+        mapping: the business mapping, which names every origin.
+        actionable: the origins that may take a factor slot.
+
+    Returns:
+        The contributions, sorted by account, then by decreasing contribution.
+    """
+    origins = list(aggregated.columns)
+    check_mapping(origins, mapping)
+    labels = [f"[{mapping[origin].source.value}] {mapping[origin].label}" for origin in origins]
+    rows, width = aggregated.shape
+    frame = pd.DataFrame(
+        {
+            "client_id": np.repeat(client_ids, width),
+            "variable_origine": np.tile(np.asarray(origins, dtype=object), rows),
+            "libelle": np.tile(np.asarray(labels, dtype=object), rows),
+            "contribution": aggregated.to_numpy(dtype="float64").ravel(),
+            "actionnable": np.tile(np.asarray([o in actionable for o in origins]), rows),
+        }
+    )
+    return frame.sort_values(
+        ["client_id", "contribution", "variable_origine"],
+        ascending=[True, False, True],
+        kind="stable",
+        ignore_index=True,
+    ).loc[:, list(CONTRIBUTION_COLUMNS)]
 
 
 def score_accounts(
@@ -161,9 +212,11 @@ def score_accounts(
 
     day = scoring.date.date()
     version = model.metadata.model_version
+    threshold = model.metadata.significance_threshold
     grid = scoring.grid
     if grid.empty:
-        rows = _empty_rows()
+        rows = _empty_frame(EXPORT_COLUMNS)
+        contributions = _empty_frame(CONTRIBUTION_COLUMNS)
         run_id = batch_run_id(version, day, "empty")
     else:
         scores = model.score(scoring.features).astype("float64")
@@ -173,10 +226,7 @@ def score_accounts(
         eligible = aggregated.loc[
             :, [origin for origin in aggregated.columns if origin in actionable]
         ]
-        factors = factor_labels(
-            top_factors(eligible, model.metadata.significance_threshold, settings.top_factors),
-            mapping,
-        )
+        factors = factor_labels(top_factors(eligible, threshold, settings.top_factors), mapping)
         ranking = (
             pd.DataFrame(
                 {
@@ -205,13 +255,18 @@ def score_accounts(
             is_top_k=ranks <= settings.k,
             model_version=version,
         ).loc[:, list(EXPORT_COLUMNS)]
+        contributions = _contribution_rows(
+            aggregated, grid.loc[aggregated.index, "client_id"].to_numpy(), mapping, actionable
+        )
 
     validate_export(rows, settings.max_label_length)
     return ScoringBatch(
         rows=rows,
+        contributions=contributions,
         batch_run_id=run_id,
         date_scoring=day,
         model_version=version,
+        significance_threshold=threshold,
         source_label=settings.source_label,
         is_synthetic=settings.is_synthetic,
     )

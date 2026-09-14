@@ -48,6 +48,7 @@ __all__ = [
     "FeatureMappingEntry",
     "FeatureSource",
     "FeaturesConfig",
+    "InterfaceConfig",
     "KkboxRawFiles",
     "KkboxSourceConfig",
     "ModelConfig",
@@ -249,6 +250,15 @@ class ExportConfig(_StrictModel):
         return self
 
 
+class InterfaceConfig(_StrictModel):
+    """Settings of the read only interface, see decisions D21 and D22."""
+
+    #: Shown in place of a missing export. Empty locally, where the interface
+    #: names the command that produces the export instead. Filled in the online
+    #: demonstration, which publishes no individual KKBox data.
+    missing_export_notice: str
+
+
 class PathsConfig(_StrictModel):
     """Directories and files of the project, resolved against the project root."""
 
@@ -280,6 +290,7 @@ class AppConfig(_StrictModel):
     evaluation: EvaluationConfig
     model: ModelConfig
     export: ExportConfig
+    interface: InterfaceConfig
     paths: PathsConfig
 
     @model_validator(mode="after")
