@@ -142,7 +142,7 @@ La construction est découpée en étapes appelées **lots**. Voici leur état :
 | 3 | Tableau d'apprentissage sans fuite d'information | Terminé |
 | 4 | Protocole d'évaluation et méthodes simples de référence | Terminé |
 | 5 | Modèle et explication des prédictions | Terminé |
-| 6 | Export des listes | À venir |
+| 6 | Export des listes | Terminé |
 | 7 | Interface web | À venir |
 | 8 | Présentation du projet | À venir |
 

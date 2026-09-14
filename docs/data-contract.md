@@ -141,14 +141,14 @@ Une ligne par client scoré, pour une date d'exécution donnée.
 
 | Colonne | Type | Sens |
 | :--- | :--- | :--- |
-| `batch_run_id` | UUID | Identifiant de l'exécution, pour la traçabilité. |
+| `batch_run_id` | UUID | Identifiant de l'exécution, pour la traçabilité. Dérivé de la version du modèle, de la date et des entrées : identique pour les mêmes données, décision D20. |
 | `date_scoring` | date | Date `T0` du scoring. |
 | `client_id` | chaîne | Identifiant du compte. |
 | `rang_priorite` | entier | Rang dans la liste, à partir de 1. |
 | `decile_risque` | entier | Décile de risque, de 1, le plus risqué, à 10. |
 | `is_top_k` | booléen | Le client appartient aux K premiers de la période. |
-| `mrr` | décimal | Repris du référentiel, pour l'arbitrage commercial. |
-| `facteur_risque_1` | chaîne | Libellé métier préfixé par sa source. |
+| `mrr` | décimal | Revenu en vigueur à la date de scoring, lu dans le journal, pour l'arbitrage commercial. Voir D18 et D20. |
+| `facteur_risque_1` | chaîne | Libellé métier préfixé par sa source. Seuls les facteurs actionnables concourent, décision D19. |
 | `facteur_risque_2` | chaîne | Idem, vide si le seuil de signification n'est pas atteint. |
 | `facteur_risque_3` | chaîne | Idem. |
 | `score_brut_technique` | décimal | Sortie non calibrée du modèle. Réservé au diagnostic. |
@@ -156,4 +156,4 @@ Une ligne par client scoré, pour une date d'exécution donnée.
 
 **Tri de sortie déterministe** : `score_brut_technique` décroissant, puis `mrr` décroissant, puis `client_id` croissant. Ce troisième critère garantit que deux exécutions sur les mêmes données produisent exactement le même fichier.
 
-**Format** : `data/exports/scoring_<date>.parquet` comme source de vérité, doublé de `scoring_<date>.csv` en `utf-8-sig`.
+**Format** : trois fichiers par date sous `data/exports/<source>/`. `scoring_<date>.parquet` est la source de vérité et porte l'identité du lot dans ses métadonnées. `scoring_<date>.csv` est encodé en `utf-8-sig`, avec le séparateur `;` et la virgule décimale, pour Excel en français. `scoring_<date>.json` porte l'identité du lot suivie des lignes, pour un front dédié éventuel. Voir D20.

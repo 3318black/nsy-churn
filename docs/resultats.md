@@ -8,6 +8,50 @@ Règle de lecture, décision D2 : un chiffre obtenu sur données simulées ne va
 
 ---
 
+## Lot 6. Premier export de la liste du lundi
+
+**Source : KKBox WSDM Churn Prediction Challenge.** Export du 14 septembre 2026, portant sur la date de scoring du 27 mars 2017.
+
+Ce n'est pas une mesure de performance : la réponse est inconnue le jour du scoring. Ce sont les chiffres de forme de la liste livrée.
+
+| Élément | Valeur |
+| :--- | :--- |
+| Date de scoring | 27 mars 2017, dernière date d'observation permise par le journal |
+| Modèle | `0.1.0-b8f55da1e566`, entraîné au lot 5 |
+| Identifiant de lot | `d215541e-429a-51d0-9084-89293da7141d` |
+| Comptes scorés | 5 093 |
+| Déciles | 509 ou 510 comptes chacun |
+| Revenu inconnu à la date | 23,9 % des comptes |
+| Durée | 25 secondes |
+
+### Motifs affichés, décision D19
+
+| Motifs par compte | Part des 5 093 comptes | Parmi les 50 premiers |
+| :--- | ---: | ---: |
+| Aucun | 27,5 % | 0 |
+| Un | 51,3 % | 0 |
+| Deux | 15,5 % | 2 |
+| Trois | 5,7 % | 48 |
+
+Sans la règle des facteurs actionnables, avec le même modèle et le même seuil, 2,6 % des comptes auraient eu un facteur structurel en premier motif et 6,2 % au moins un. La règle fait passer la part de comptes sans motif de 26,2 % à 27,5 % : ce sont les comptes dont les seuls signaux significatifs étaient structurels.
+
+Le premier motif le plus fréquent reste « [PRODUCT] Fréquence d'usage », pour 1 868 comptes, devant « [FINANCE] Facturation », pour 1 029.
+
+### Critères d'acceptation vérifiés
+
+- **Fichiers identiques** : deux exécutions successives sur KKBox donnent la même empreinte SHA-256 pour le Parquet, le CSV et le JSON.
+- **Excel** : le CSV ouvert dans Excel sous Windows en français, comme par un double-clic, donne 12 colonnes et 5 094 lignes en-tête compris, des revenus et des scores reconnus comme nombres, et des accents corrects.
+
+### Reproduire
+
+```bash
+uv run python -m churn.pipeline.run_scoring --source kkbox
+```
+
+Aucun accès réseau. Nécessite le jeu projeté et le modèle du lot 5.
+
+---
+
 ## Lot 5. Modèle XGBoost face aux lignes de base, et explication des scores
 
 **Source : KKBox WSDM Churn Prediction Challenge.** Mesure du 13 septembre 2026.

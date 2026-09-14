@@ -4,7 +4,7 @@ Moteur de prédiction de résiliation client. À une date donnée, il classe les
 
 ## État du projet
 
-Cadrage terminé le 7 septembre 2026. Lots 0 à 4 livrés : socle, contrat de données, adaptateur KKBox, jeu d'apprentissage sans fuite et protocole d'évaluation. Lot 5, modélisation et explicabilité, en revue : sur KKBox, le modèle atteint une Precision@50 de 0,333 contre 0,098 pour le tri par revenu, détail dans `docs/resultats.md`.
+Cadrage terminé le 7 septembre 2026. Lots 0 à 4 livrés : socle, contrat de données, adaptateur KKBox, jeu d'apprentissage sans fuite et protocole d'évaluation. Lot 5, modélisation et explicabilité, livré : sur KKBox, le modèle atteint une Precision@50 de 0,333 contre 0,098 pour le tri par revenu, détail dans `docs/resultats.md`. Lot 6, export des listes en Parquet, CSV et JSON, en revue.
 
 Ce README sera réécrit au dernier lot, une fois les résultats disponibles. Le plan imposé figure au lot 8 de la roadmap.
 
@@ -35,7 +35,7 @@ Les données brutes ne sont pas versionnées.
 | Fichier | Contenu |
 | :--- | :--- |
 | `AGENTS.md` | Manuel opératoire de l'agent développeur. Point d'entrée. |
-| `docs/decisions.md` | Décisions closes, de D1 à D18, et points ouverts. |
+| `docs/decisions.md` | Décisions closes, de D1 à D20, et points ouverts. |
 | `docs/cours/` | Cours pour débutant, en parties et chapitres : l'application, la méthode, les outils, puis chaque étape de construction, avec exercices et quiz. |
 | `docs/data-contract.md` | Tables d'entrée, construction du jeu d'apprentissage, règle de non-fuite, pièges mesurés, schéma de sortie. |
 | `docs/dataset-kkbox.md` | Projection du jeu KKBox sur le contrat et reconstruction de la cible. |

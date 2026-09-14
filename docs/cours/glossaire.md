@@ -8,6 +8,8 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Adaptateur** | Code qui convertit une source de données particulière au format du contrat de données. | 4 |
 | **Apprentissage supervisé** | Apprendre à partir d'exemples dont on connaît déjà la réponse. | 1 |
 | **Arbre de décision** | Modèle qui pose une suite de questions sur les variables pour aboutir à un score. | 8 |
+| **Batch** | Traitement par lots : un calcul lancé à intervalle régulier sur toutes les données d'un coup, plutôt qu'à la demande. | 10 |
+| **CSV** | Format texte où chaque ligne est un enregistrement et les colonnes sont séparées par un caractère, ici le point-virgule. | 10 |
 | **Biais** | Dans les contributions d'un modèle, le score moyen commun à tous, qui n'appartient à aucune variable. | 9 |
 | **Bibliothèque** | Ensemble de fonctions prêtes à l'emploi, écrites par d'autres. | 3 |
 | **Branche** | Copie de travail parallèle du code, dans Git. | 2 |
@@ -18,10 +20,14 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Contrôle par force brute** | Test qui recalcule les variables de la façon la plus naïve pour vérifier le calcul rapide. | 6 |
 | **Critère d'acceptation** | Condition précise et vérifiable qui doit être remplie pour qu'une étape soit terminée. | 2 |
 | **Décile de risque** | Rang d'un abonné parmi dix groupes de taille égale, du plus risqué, 1, au moins risqué, 10. | 1 |
+| **Destination** | Composant qui écrit la liste dans un format donné : Parquet, CSV ou JSON. On en ajoute une sans toucher au reste. | 10 |
+| **Déterministe** | Se dit d'un calcul qui donne exactement le même résultat chaque fois qu'on le relance sur les mêmes données. | 10 |
 | **Embargo** | Intervalle vide laissé entre l'apprentissage et le test, au moins égal à l'horizon de prédiction. | 7 |
-| **Empreinte** | Signature calculée à partir de toutes les données d'entraînement, qui change si une seule valeur change. | 9 |
+| **Empreinte** | Signature calculée à partir de données ou d'un fichier, qui change si une seule valeur change. SHA-256 en est un algorithme courant. | 9, 10 |
+| **Encodage** | Façon de représenter les caractères en octets. UTF-8 gère tous les caractères, accents compris. | 10 |
 | **État** | Événement qui enregistre une valeur en vigueur, comme un revenu mensuel. Il se lit à une date, sans se sommer. | 8 |
 | **Exactitude** | Part de bonnes réponses d'un modèle. Trompeuse quand l'événement à prédire est rare. | 1, 7 |
+| **Export** | Fichier qui livre les résultats du pipeline à ceux qui s'en servent. Ici, la liste du lundi. | 10 |
 | **Fenêtre** | Période de temps sur laquelle on résume le passé d'un abonné : 7, 30 ou 90 jours avant la date d'observation. | 6 |
 | **Flux** | Événement qui arrive et se compte ou s'additionne sur une période, comme une journée d'écoute. | 8 |
 | **Fuite d'information** | Situation où un modèle apprend avec une information qu'il n'aurait pas eue au moment de décider. | 6 |
@@ -31,9 +37,11 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Horizon de prédiction** | Durée sur laquelle porte la prédiction. Ici, 30 jours. | 5 |
 | **Hyperparamètre** | Réglage d'un modèle choisi avant l'apprentissage, comme le nombre d'arbres. | 8 |
 | **Intégration continue** | Exécution automatique des tests et contrôles à chaque envoi de code, sur une machine neutre. | 2 |
+| **JSON** | Format texte structuré, natif du web, qui range des données en paires nom et valeur. | 10 |
 | **Ligne de base** | Méthode simple qui sert de point de comparaison : hasard, tri par revenu, régression logistique. | 7 |
 | **Lift** | Nombre de fois qu'une méthode fait mieux qu'une méthode de référence. | 7 |
 | **Lot** | Étape cohérente du projet, livrée et vérifiée avant de passer à la suivante. | 2 |
+| **Marque d'ordre des octets** | Trois octets invisibles placés au début d'un fichier pour annoncer l'encodage UTF-8. Sans elle, Excel sous Windows casse les accents. | 10 |
 | **Modèle** | Programme qui a appris, à partir d'exemples passés, à reconnaître une situation. | 1 |
 | **Normalisation** | Mise à la même échelle des variables avant l'entraînement d'un modèle comme la régression logistique. | 7 |
 | **Parquet** | Format de fichier qui range les données par colonne, conserve leur type et les compresse. | 3 |
@@ -51,6 +59,7 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Tendance** | Variable qui compare une fenêtre récente à la précédente, pour capter une rupture. | 6 |
 | **Test** | Petit programme qui vérifie qu'un morceau de code donne le bon résultat. | 2 |
 | **T0** | Date d'observation d'une ligne de la grille : le lundi où l'on se place, sans rien savoir de ce qui suit. | 6 |
+| **UUID** | Identifiant de 36 caractères conçu pour ne pas se répéter. Ici, il est dérivé des entrées du calcul plutôt que tiré au hasard. | 10 |
 | **Validation** | Période découpée dans les données d'apprentissage pour choisir les réglages, sans toucher au test. | 8 |
 | **Valeurs de Shapley** | Répartition équitable, entre les variables, de l'écart entre le score d'un abonné et le score moyen. | 9 |
 | **Variable** | Colonne qui décrit la situation d'un exemple, comme le nombre de jours d'écoute sur 30 jours. | 6 |

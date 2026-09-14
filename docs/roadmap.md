@@ -170,7 +170,9 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 - `src/churn/pipeline/sinks.py`, interface de destination, implémentations Parquet, CSV et JSON. La destination JSON prépare un front dédié éventuel sans jamais toucher au pipeline, voir décision D15
 - `src/churn/pipeline/schemas.py`, schéma Pydantic de la ligne d'export
 
-**Facteurs actionnables seulement, choix arrêté le 2026-09-14.** L'export n'affiche que des facteurs dont le libellé porte une action, c'est-à-dire aucun facteur de la famille `GENERAL` comme le revenu ou l'ancienneté. Ils continuent de peser dans le score, mais n'occupent pas une case de motif que le commercial ne pourrait pas exploiter. Décision à consigner en D19 au démarrage du lot.
+**Facteurs actionnables seulement, choix arrêté le 2026-09-14.** L'export n'affiche que des facteurs dont le libellé porte une action, c'est-à-dire aucun facteur de la famille `GENERAL` comme le revenu ou l'ancienneté. Ils continuent de peser dans le score, mais n'occupent pas une case de motif que le commercial ne pourrait pas exploiter. Consigné en D19.
+
+**Livrables ajoutés au démarrage, décision D20.** `src/churn/pipeline/scoring.py` calcule rang, décile, facteurs et identité du lot, pour que `sinks.py` n'ait rien à transformer. `build_scoring_set` dans `features/build.py` construit la population du jour de scoring avec les règles et les variables de l'apprentissage, sans la règle d'issue connue. Le chapitre 10 du cours accompagne le lot.
 
 **Critères d'acceptation**
 
