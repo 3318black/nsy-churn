@@ -44,7 +44,7 @@ Durée totale estimée : environ 7 heures, quiz compris.
 
 Le cours se lit aussi dans une application web. Elle ajoute un menu qui garde votre progression, des quiz corrigés automatiquement avec l'explication de chaque réponse, et un glossaire où chercher un terme. Elle lit exactement ces fichiers : son contenu est toujours celui du dépôt.
 
-- Adresse en ligne : publication en cours.
+- En ligne : <https://coursapppy-2btm3etswcx5yzqdxqib7p.streamlit.app/>
 - Sur votre ordinateur : `uv run streamlit run app/cours_app.py`.
 
 La progression est gardée tant que la page reste ouverte.

@@ -244,9 +244,9 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 3. aucune affirmation de performance n'est faite sans indiquer la source de données correspondante
 4. les limites sont écrites, pas éludées
 
-**Livré le 2026-09-14, hors adresse en ligne.** README réécrit selon ce plan, chapitre 12 et quiz de la partie 4 du cours. La section 7 du README attend l'adresse de l'application, reportée après la publication sur Streamlit Community Cloud.
+**Livré le 2026-09-14.** README réécrit selon ce plan, chapitre 12 et quiz de la partie 4 du cours. L'application est publiée sur Streamlit Community Cloud, et son adresse figure dans la section 7 du README : <https://appapppy-gm32tcl7sk2qhllhvg9vdv.streamlit.app/>
 
-**Application du cours, le 2026-09-14, décision D25.** Le cours pour débutant se lit aussi dans une seconde application Streamlit, `app/cours_app.py`, qui lit les fichiers Markdown tels quels et ajoute la progression, des quiz corrigés et un glossaire filtrable. Son adresse rejoindra celle de la démonstration dans le README.
+**Application du cours, le 2026-09-14, décision D25.** Le cours pour débutant se lit aussi dans une seconde application Streamlit, `app/cours_app.py`, qui lit les fichiers Markdown tels quels et ajoute la progression, des quiz corrigés et un glossaire filtrable. Elle est publiée à l'adresse <https://coursapppy-2btm3etswcx5yzqdxqib7p.streamlit.app/>
 
 ---
 

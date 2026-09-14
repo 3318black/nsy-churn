@@ -4,7 +4,7 @@ Moteur de priorisation des appels de rétention pour un service par abonnement. 
 
 > **En bref.** Une équipe peut appeler 50 abonnés par semaine. Sur des semaines passées de KKBox, un service de musique en streaming, le modèle en désigne en moyenne **14 qui partent réellement dans les 30 jours**, contre 7 pour une régression logistique et 4 pour un tri par revenu. Mesure sur quatre périodes de test que le modèle n'a jamais vues.
 >
-> [Application en ligne](#7-application-en-ligne-et-reproduction) · [Cours pour débutant](docs/cours/README.md) · [Résultats détaillés](docs/resultats.md)
+> [Application en ligne](https://appapppy-gm32tcl7sk2qhllhvg9vdv.streamlit.app/) · [Cours interactif pour débutant](https://coursapppy-2btm3etswcx5yzqdxqib7p.streamlit.app/) · [Résultats détaillés](docs/resultats.md)
 
 ## 1. Le problème et la cible
 
@@ -125,7 +125,7 @@ Sur les 5 165 abonnés de cette liste, 36,2 % n'ont aucun motif significatif, et
 
 ### Application en ligne
 
-Adresse : publication en cours.
+Adresse : <https://appapppy-gm32tcl7sk2qhllhvg9vdv.streamlit.app/>
 
 L'application compte quatre écrans : la présentation du projet, la liste du lundi, la fiche d'un abonné et la performance du modèle. En ligne, l'accueil et l'écran de performance montrent les vrais résultats KKBox, qui ne sont que des moyennes. La liste et la fiche tournent sur des données simulées, sous un bandeau qui le signale. L'application lit le dossier `demo/`, reconstruit par `uv run python scripts/build_demo.py`.
 
@@ -133,7 +133,7 @@ L'application compte quatre écrans : la présentation du projet, la liste du lu
 
 Le cours pour débutant a sa propre application, `app/cours_app.py` : un menu qui garde la progression, des quiz corrigés avec l'explication de chaque réponse, et un glossaire où chercher un terme. Elle lit directement les fichiers de `docs/cours`, décision D25.
 
-Adresse : publication en cours.
+Adresse : <https://coursapppy-2btm3etswcx5yzqdxqib7p.streamlit.app/>
 
 ### Reproduire
 
