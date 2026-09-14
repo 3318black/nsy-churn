@@ -47,14 +47,22 @@ features:
 evaluation:
   n_splits: 4
   scoring_period: W-MON
+  logistic_regularisation:
+  - 0.01
+  - 0.1
+  - 1.0
+  - 10.0
 model:
   algorithm: xgboost
   significance_quantile: 0.75
   param_grid:
     max_depth:
+    - 2
+    - 3
     - 4
     - 6
     n_estimators:
+    - 100
     - 300
     - 600
     learning_rate:

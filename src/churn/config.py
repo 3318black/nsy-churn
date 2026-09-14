@@ -209,10 +209,19 @@ class FeaturesConfig(_StrictModel):
 
 
 class EvaluationConfig(_StrictModel):
-    """Evaluation protocol, see decisions D4 and D5."""
+    """Evaluation protocol, see decisions D4, D5 and D23."""
 
     n_splits: int = Field(gt=0)
     scoring_period: str = Field(min_length=1)
+    logistic_regularisation: list[float] = Field(min_length=1)
+
+    @field_validator("logistic_regularisation")
+    @classmethod
+    def _require_positive_regularisation(cls, value: list[float]) -> list[float]:
+        if any(strength <= 0 for strength in value):
+            message = f"every regularisation strength must be positive, got {value}"
+            raise ValueError(message)
+        return value
 
 
 class ParamGridConfig(_StrictModel):

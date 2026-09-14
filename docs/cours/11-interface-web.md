@@ -64,7 +64,7 @@ Le bandeau est placé **avant** tout écran, dans le code. Il ne peut donc pas �
 
 - Trois indicateurs : le meilleur classement, le nombre de départs qu'il trouve sur 50 appels, et combien de fois il fait mieux que le tri par revenu.
 - Le tableau des six classements du chapitre 8 : précision, écart type, rappel, ROC-AUC, lift.
-- La **courbe** de précision semaine par semaine, pour les classements choisis. Sur KKBox, on y voit XGBoost au-dessus à la fois de la régression logistique et du tri par revenu sur 78 des 80 semaines de test.
+- La **courbe** de précision semaine par semaine, pour les classements choisis. Sur KKBox, on y voit XGBoost au-dessus à la fois de la régression logistique et du tri par revenu sur 75 des 80 semaines de test.
 
 C'est l'argument technique central du projet, présenté de façon que chacun puisse le vérifier.
 

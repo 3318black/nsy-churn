@@ -4,7 +4,73 @@ Ce document consigne les mesures qui engagent le projet. Les rapports détaillé
 
 Règle de lecture, décision D2 : un chiffre obtenu sur données simulées ne vaut jamais prévision. Seules les mesures portant la source KKBox ont une valeur.
 
-**Mesure de référence actuelle : lot 5.** La mesure du lot 4 est conservée pour l'historique, mais elle précède la décision D18 et le journal d'écoute complet. Ses chiffres ne sont plus comparables.
+**Mesure de référence actuelle : la mesure complémentaire du 14 septembre**, décision D23. La mesure du lot 5 est conservée pour l'historique ; son modèle final est identique. La mesure du lot 4 précède la décision D18 et le journal d'écoute complet, et ses chiffres ne sont plus comparables.
+
+---
+
+## Mesure complémentaire. Grille élargie et régression logistique réglée
+
+**Source : KKBox WSDM Churn Prediction Challenge.** Mesure du 14 septembre 2026, décision D23.
+
+### Conditions
+
+Identiques au lot 5 : 8 150 comptes, grille de 410 523 couples et 9 159 positifs, 4 plis chronologiques avec embargo et purge, K = 50 hypothétique, 86 variables. Deux changements, décidés avant la mesure :
+
+| Changement | Détail |
+| :--- | :--- |
+| Grille XGBoost | 24 combinaisons : profondeurs 2, 3, 4 et 6 ; 100, 300 ou 600 arbres ; taux 0,05 ou 0,1 |
+| Régression logistique réglée | Logarithme signé des variables, standardisation, force de régularisation choisie parmi 0,01, 0,1, 1 et 10 sur la validation interne |
+
+Durée : 22,5 minutes.
+
+### Synthèse, moyenne sur les quatre plis
+
+| Classement | Precision@50 | Écart type entre plis | Rappel au rang 50 | ROC-AUC | Lift contre le revenu |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Hasard | 0,0205 | 0,0057 | 0,0123 | 0,502 | 0,21 |
+| Tri par revenu en vigueur | 0,0980 | 0,0198 | 0,0612 | 0,687 | 1,00 |
+| Régression logistique, finance seule | 0,1445 | 0,0285 | 0,0894 | 0,718 | 1,47 |
+| Régression logistique, toutes variables | 0,1490 | 0,0226 | 0,0924 | 0,721 | 1,52 |
+| Régression logistique réglée, finance seule | 0,1318 | 0,0251 | 0,0809 | 0,731 | 1,34 |
+| Régression logistique réglée, toutes variables | 0,1258 | 0,0200 | 0,0781 | 0,739 | 1,28 |
+| XGBoost, finance seule | 0,3205 | 0,0251 | 0,1975 | 0,833 | 3,27 |
+| **XGBoost, toutes variables** | **0,3228** | 0,0143 | 0,1991 | 0,837 | **3,29** |
+
+### Détail par pli des nouveaux classements
+
+| Pli | Logistique réglée, finance | Logistique réglée | XGBoost finance, grille élargie | XGBoost, grille élargie | XGBoost, grille du lot 5 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0,169 | 0,145 | 0,338 | 0,300 | 0,313 |
+| 1 | 0,140 | 0,138 | 0,352 | 0,338 | 0,369 |
+| 2 | 0,113 | 0,127 | 0,293 | 0,322 | 0,322 |
+| 3 | 0,105 | 0,093 | 0,299 | 0,331 | 0,327 |
+
+Réglages retenus par pli, sur la validation interne :
+
+- logistique réglée, finance seule : C = 1 ; 0,01 ; 0,1 ; 0,01 ;
+- logistique réglée, toutes variables : C = 0,1 ; 10 ; 10 ; 0,1 ;
+- XGBoost, finance seule : profondeur et arbres de 4 et 300, 3 et 300, 3 et 300, 4 et 100 ;
+- XGBoost, toutes variables : 3 et 100, 3 et 100, 4 et 300, 4 et 100.
+
+Le modèle final, entraîné sur toute la grille, retient profondeur 4, 300 arbres et taux 0,05 : version `0.1.0-b8f55da1e566`, identique au lot 5.
+
+### Lecture
+
+**Le modèle bat toutes les lignes de base, sur chaque pli et presque chaque semaine.** Sur 50 appels par semaine, XGBoost désigne environ 16 comptes qui partiront dans les 30 jours, contre 7 pour la meilleure régression logistique et 5 pour le tri par revenu. Il dépasse à la fois la régression logistique et le tri par revenu sur 75 des 80 semaines de test.
+
+**La régression logistique réglée n'est pas une ligne de base plus forte en tête de liste.** Face à la logistique simple, l'écart par pli vaut −0,014, −0,043, −0,005 et −0,031 avec toutes les variables : négatif sur les quatre plis. Son ROC-AUC est pourtant meilleur, 0,739 contre 0,721 : elle ordonne mieux la liste entière, et moins bien les 50 premiers. Deux explications plausibles, non vérifiées : la compression logarithmique aplatit les valeurs extrêmes qui signalent justement les comptes les plus à risque, et la validation interne, sur une moitié de pli, mesure trop bruyamment la tête de liste pour départager les forces de régularisation.
+
+**Le gain du modèle est établi contre la plus forte des logistiques.** À variables financières égales, XGBoost gagne +0,179, +0,168, +0,178 et +0,179 sur la logistique simple : +0,176 en moyenne, écart type de 0,005. Contre la logistique réglée, le gain est de +0,189.
+
+**La grille élargie n'apporte rien de mesurable.** Face à la grille du lot 5, XGBoost varie de −0,013, −0,031, 0,000 et +0,004 par pli, et sa variante financière de +0,007 en moyenne. Ces écarts restent dans la variabilité entre plis.
+
+**Le gain du journal d'écoute reste non établi** : +0,002 en moyenne, positif sur deux plis sur quatre.
+
+### Reproduire
+
+```bash
+uv run python scripts/train_model.py --source kkbox
+```
 
 ---
 

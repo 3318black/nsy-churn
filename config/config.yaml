@@ -78,6 +78,9 @@ features:
 evaluation:
   n_splits: 4
   scoring_period: "W-MON"
+  # Forces de regularisation proposees a la regression logistique reglee, choisie
+  # sur la meme validation interne que XGBoost. Inverse de la penalite. Voir D23.
+  logistic_regularisation: [0.01, 0.1, 1.0, 10.0]
 
 # Modelisation.
 model:
@@ -85,10 +88,11 @@ model:
   # Quantile de la distribution des contributions absolues qui definit le seuil
   # de signification. Calcule a l'entrainement, jamais fige en dur. Voir D7.
   significance_quantile: 0.75
-  # Grille reduite et assumee, decision D16.
+  # Grille elargie vers des modeles plus simples, decision D23 : au lot 5, la
+  # selection se logeait dans le coin le plus prudent de la grille reduite de D16.
   param_grid:
-    max_depth: [4, 6]
-    n_estimators: [300, 600]
+    max_depth: [2, 3, 4, 6]
+    n_estimators: [100, 300, 600]
     learning_rate: [0.05, 0.1]
 
 # Restitution. Voir decision D8.

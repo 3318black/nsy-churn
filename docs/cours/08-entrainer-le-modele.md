@@ -112,7 +112,7 @@ Le choix se fait **à l'intérieur de l'apprentissage de chaque pli** :
 3. La meilleure combinaison est retenue, et le modèle est réentraîné sur tout l'apprentissage du pli.
 4. Il est enfin évalué sur le test, qu'il n'a jamais vu, ni directement ni à travers le choix de ses réglages.
 
-Sur KKBox, la sélection a presque toujours retenu la combinaison la plus prudente : profondeur 4, 300 arbres, taux 0,05. C'est un indice que des modèles encore plus simples feraient peut-être aussi bien. Ce n'est pas vérifié, et c'est écrit dans les limites.
+Sur KKBox, la sélection a presque toujours retenu la combinaison la plus prudente : profondeur 4, 300 arbres, taux 0,05. C'était un indice que des modèles encore plus simples feraient peut-être aussi bien. La section 6 raconte comment cette piste a été vérifiée.
 
 Si la sélection est impossible, par exemple quand la validation ne contient aucun départ, le code garde le premier réglage, **écrit un avertissement** et affiche la raison dans le rapport. Rien ne se passe en silence.
 
@@ -155,9 +155,50 @@ C'est un résultat, pas un échec. L'hypothèse de départ était que le taux de
 ### Les limites, écrites
 
 - La capacité de 50 appels par semaine est une hypothèse : KKBox n'a pas d'équipe qui appelle ses abonnés.
-- La régression logistique n'a pas été finement réglée. Une version mieux préparée ferait probablement mieux que 0,149.
-- La sélection des réglages se loge dans le coin le plus prudent de la grille, et des modèles plus simples n'ont pas été essayés.
+- La régression logistique n'a pas été finement réglée, et la sélection des réglages se loge dans le coin le plus prudent de la grille. Ces deux limites ont fait l'objet d'une vérification, racontée dans la section suivante.
 - L'échantillon compte 8 150 abonnés, sur 2,36 millions disponibles.
+
+## 6. Une dernière vérification : la ligne de base était-elle trop faible ?
+
+### Le doute
+
+Un lecteur exigeant pourrait objecter : « Votre modèle bat une régression logistique que vous n'avez pas réglée. Et vos réglages de XGBoost s'arrêtent pile au bord de la grille. Le match était-il équitable ? »
+
+L'objection est sérieuse. Une ligne de base trop faible rend n'importe quel modèle brillant.
+
+### Ce qui a été fait, et décidé avant de mesurer
+
+Deux améliorations ont été décidées **avant** de lancer la mesure, pour que leur résultat ne puisse pas influencer le choix.
+
+**Une grille plus large pour XGBoost.** 24 combinaisons au lieu de 8, en ajoutant des arbres moins profonds, 2 ou 3 questions, et des modèles plus petits, 100 arbres.
+
+**Une régression logistique réglée**, avec deux ajouts :
+
+- une **compression logarithmique** des variables. Le logarithme rapproche les valeurs extrêmes : 1, 10, 100 et 1 000 deviennent environ 0,7, 2,4, 4,6 et 6,9. Quelques abonnés aux chiffres énormes ne tirent plus tout le modèle vers eux ;
+- une **régularisation** choisie sur la validation interne. La régularisation est une pénalité qui retient les poids du modèle, pour l'empêcher d'apprendre du bruit. Quatre forces sont essayées, exactement comme les réglages de XGBoost.
+
+### Le résultat
+
+| Classement | Precision@50 | Sur 50 appels, départs trouvés |
+| :--- | ---: | ---: |
+| Régression logistique simple | 0,149 | 7 |
+| Régression logistique réglée | 0,126 | 6 |
+| XGBoost, grille du lot 5 | 0,333 | 17 |
+| XGBoost, grille élargie | 0,323 | 16 |
+
+**Surprise : la logistique réglée fait moins bien**, sur les quatre plis. Elle obtient pourtant un meilleur ROC-AUC, 0,739 contre 0,721. Elle classe donc mieux la liste dans son ensemble, mais moins bien ses 50 premiers, les seuls que l'équipe appelle.
+
+> **À retenir.** Améliorer une mesure globale n'améliore pas forcément la tête de liste. C'est pour cela que le projet se juge sur la Precision@50 et non sur le ROC-AUC.
+
+Le gain du modèle se mesure donc contre la **plus forte** des deux logistiques, la simple : +0,176 à variables égales, positif sur les quatre plis. L'objection ne tient pas.
+
+**La grille élargie n'apporte rien de mesurable** : 0,323 contre 0,333, un écart plus petit que la variation entre plis. Le modèle final garde d'ailleurs exactement les mêmes réglages.
+
+### Pourquoi garder la grille élargie malgré un chiffre un peu plus bas ?
+
+Revenir à l'ancienne grille parce qu'elle donne 0,333 au lieu de 0,323 serait **choisir un réglage en regardant le résultat du test**. C'est précisément l'erreur de la section 4. La grille élargie avait été décidée avant la mesure : elle reste, et les chiffres de référence du projet deviennent ceux de cette mesure.
+
+> **À retenir.** Quand une amélioration évidente n'améliore rien, on l'écrit. Et on compare toujours un modèle à la plus forte des lignes de base mesurées, jamais à la plus faible.
 
 ---
 
@@ -195,6 +236,7 @@ C'est un résultat, pas un échec. L'hypothèse de départ était que le taux de
 - Un **arbre de décision** pose une suite de questions. Le **gradient boosting** enchaîne des centaines d'arbres qui corrigent les erreurs des précédents.
 - Les **hyperparamètres** se choisissent sur une **validation** interne à l'apprentissage, jamais sur le test.
 - Une **ablation** sépare l'apport du modèle de l'apport des données.
-- Sur KKBox, le **gain du modèle est établi** : 17 départs trouvés sur 50 appels, contre 7 pour la régression logistique et 5 pour le tri par revenu. Le **gain des données d'écoute ne l'est pas**.
+- Sur KKBox, le **gain du modèle est établi** : 16 départs trouvés sur 50 appels, contre 7 pour la meilleure régression logistique et 5 pour le tri par revenu. Le **gain des données d'écoute ne l'est pas**.
+- Une **régression logistique réglée** et une **grille élargie** n'ont rien changé : l'objection d'une ligne de base trop faible ne tient pas.
 
 **Chapitre précédent :** [7. Évaluer honnêtement](07-evaluer-honnetement.md) · **Chapitre suivant :** [9. Expliquer chaque prédiction](09-expliquer-les-predictions.md)

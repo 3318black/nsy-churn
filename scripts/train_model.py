@@ -34,7 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from churn.config import AppConfig, FeatureSource, load_config, load_feature_mapping
 from churn.data.sources import ParquetDataSource, SourceDescription
 from churn.data.synthetic import generate_dataset
-from churn.evaluation.baselines import LogisticScorer, RandomScorer, RevenueScorer, Scorer
+from churn.evaluation.baselines import (
+    LogisticScorer,
+    RandomScorer,
+    RevenueScorer,
+    Scorer,
+    TunedLogisticScorer,
+)
 from churn.evaluation.protocol import evaluate_scorers, summarise
 from churn.evaluation.report import source_banner, write_evaluation_report
 from churn.evaluation.splitting import temporal_folds
@@ -123,11 +129,18 @@ def _compare(config: AppConfig, description: SourceDescription, training: Traini
     candidates = param_candidates(config.model.param_grid)
     boosted_finance = XGBoostScorer(candidates, selection, FINANCE_ONLY, "xgboost_finance")
     boosted = XGBoostScorer(candidates, selection)
+    strengths = config.evaluation.logistic_regularisation
+    tuned_finance = TunedLogisticScorer(
+        strengths, selection, FINANCE_ONLY, "logistic_tuned_finance"
+    )
+    tuned = TunedLogisticScorer(strengths, selection)
     scorers: list[Scorer] = [
         RandomScorer(config.project.random_seed),
         RevenueScorer(),
         LogisticScorer(families=FINANCE_ONLY, name="logistic_finance"),
         LogisticScorer(),
+        tuned_finance,
+        tuned,
         boosted_finance,
         boosted,
     ]
@@ -147,10 +160,16 @@ def _compare(config: AppConfig, description: SourceDescription, training: Traini
     print(f"variables   : {training.features.shape[1]}")
     print(f"plis        : {len(folds)}")
     print(summarise(result).round(4).to_string(index=False))
-    for scorer in (boosted_finance, boosted):
-        for position, chosen in enumerate(scorer.selections):
+    for tuned_scorer in (tuned_finance, tuned):
+        for position, strength in enumerate(tuned_scorer.selections):
+            print(
+                f"{tuned_scorer.name:<22} pli {position} : C={strength.params} "
+                f"{strength.fallback_reason}"
+            )
+    for boosted_scorer in (boosted_finance, boosted):
+        for position, chosen in enumerate(boosted_scorer.selections):
             params = asdict(chosen.params)
-            print(f"{scorer.name:<16} pli {position} : {params} {chosen.fallback_reason}")
+            print(f"{boosted_scorer.name:<22} pli {position} : {params} {chosen.fallback_reason}")
     for path in written:
         print(f"ecrit       : {path}")
 
