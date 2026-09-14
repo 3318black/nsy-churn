@@ -86,7 +86,7 @@ Le format **Parquet**, lu et écrit grâce à la bibliothèque **pyarrow**, rang
 
 Chiffre réel du projet : le journal de 4 329 107 événements de l'échantillon KKBox occupe **25,5 Mo** en Parquet. Le fichier d'écoute d'origine, en CSV, pèse 30,5 Go pour l'ensemble des abonnés.
 
-Le projet produira aussi des CSV, mais seulement là où un humain doit ouvrir le fichier dans un tableur, au lot 6.
+Le projet produit aussi des CSV, mais seulement là où un humain doit ouvrir le fichier dans un tableur : la liste du lundi, chapitre 10.
 
 ## 6. Contrôler et régler : pydantic et YAML
 

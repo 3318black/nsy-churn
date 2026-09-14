@@ -77,7 +77,7 @@ Production : `pandas`, `numpy`, `scikit-learn`, `xgboost`, `pydantic`, `pyarrow`
 
 ## 5. Décisions déjà prises
 
-Elles sont dans `docs/decisions.md`, de D1 à D18. Les sept qui cassent le plus souvent une implémentation :
+Elles sont dans `docs/decisions.md`, de D1 à D20. Les sept qui cassent le plus souvent une implémentation :
 
 - **D4** : découpage temporel avec embargo au moins égal à l'horizon. Jamais de `train_test_split` aléatoire sur ces données.
 - **D5** : `Precision@K` se calcule par période de scoring, puis se moyenne. Ce n'est pas un top K global.
@@ -118,6 +118,7 @@ Le point à ne jamais perdre de vue : **toute variable calculée pour un couple 
 | `evaluation/metrics.py` | Métriques de tête de liste | Ne trace aucun graphique |
 | `models/train.py` | Entraînement et recherche d'hyperparamètres | Ne définit aucune métrique |
 | `models/explain.py` | TreeSHAP, agrégation, extraction du top 3 | N'écrit aucun fichier de sortie |
+| `pipeline/scoring.py` | Rang, décile, facteurs actionnables et identité du lot pour une date | N'écrit aucun fichier |
 | `pipeline/sinks.py` | Écriture vers une destination | Ne transforme aucune valeur |
 | `app/streamlit_app.py` | Affichage des exports en lecture seule | N'entraîne rien, ne score rien, ne recalcule rien |
 

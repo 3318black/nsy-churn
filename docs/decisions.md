@@ -291,6 +291,34 @@ Un type d'événement s'ajoute à la nomenclature, `revenu_mensuel`, qui enregis
 
 ---
 
+## D19. L'export n'affiche que des facteurs actionnables
+
+**Statut** : Actée le 2026-09-14, au démarrage du lot 6.
+
+Seules les variables d'origine dont le libellé porte une action concourent aux trois cases de facteur de l'export. Les variables structurelles, dont l'action est vide dans `config/feature_mapping.yaml`, comme le revenu en vigueur ou l'ancienneté, continuent de peser dans le score, mais n'occupent jamais une case.
+
+**Motif.** Au lot 5, le premier compte de la dernière période affichait « [GENERAL] Revenu mensuel en vigueur » en premier facteur. Un commercial ne peut rien en faire : on n'agit ni sur l'ancienneté d'un abonné ni sur le prix qu'il paie pour le retenir. Une case prise par un facteur sans levier masque un motif sur lequel il pourrait agir. La table ronde du 28 août l'avait d'ailleurs posé dès le premier tour : isoler les variables actionnables des simples variables structurelles.
+
+**Ce qui ne change pas.** Le seuil de signification reste celui calculé à l'entraînement sur toutes les variables d'origine. Un compte dont seuls des facteurs structurels sont significatifs reçoit des cases vides, jamais un motif inventé.
+
+---
+
+## D20. Un export reproductible et lisible sans outil
+
+**Statut** : Actée le 2026-09-14, au démarrage du lot 6.
+
+Quatre règles fixent la forme de l'export.
+
+**Identifiant de lot déterministe.** `batch_run_id` est un UUID de version 5, dérivé de la version du modèle, de la date de scoring et d'une empreinte des lignes scorées et de leurs variables. Un UUID aléatoire rendait impossible le premier critère du lot 6, deux exécutions sur les mêmes données produisant des fichiers identiques. L'identifiant reste unique par lot réel : toute différence d'entrée en produit un autre.
+
+**Revenu à la date de scoring.** La colonne `mrr` de l'export est le revenu en vigueur à la date de scoring, lu dans le journal comme pour l'apprentissage, décision D18. C'est aussi celui du départage des égalités. Il coïncide avec le revenu du référentiel quand la date de scoring est la date d'extraction.
+
+**Population de scoring.** Les comptes scorés obéissent aux mêmes règles d'éligibilité que la grille d'apprentissage, sans la règle d'issue connue, qui n'a pas de sens le jour du scoring. Leurs variables sont calculées par la même fonction, vérifiée par un test d'égalité sur une date commune. Sans date explicite, la date de scoring est la dernière date d'observation que le journal permet.
+
+**Fichiers.** Trois fichiers par date, sous `paths.exports/<source>/` : `scoring_<date>.parquet`, source de vérité portant l'identité du lot dans ses métadonnées ; `scoring_<date>.csv`, en `utf-8-sig`, séparateur `;` et virgule décimale pour Excel en français ; `scoring_<date>.json`, identité du lot suivie des lignes, pour un front dédié éventuel, décision D15. Le dossier par source empêche un export simulé de côtoyer un export réel.
+
+---
+
 ## Points ouverts
 
 | Réf | Question | Qui tranche | Bloque |

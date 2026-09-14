@@ -235,7 +235,18 @@ class ExportConfig(_StrictModel):
 
     csv_encoding: str = Field(min_length=1)
     csv_separator: str = Field(min_length=1, max_length=1)
+    csv_decimal: str = Field(min_length=1, max_length=1)
     max_label_length: int = Field(gt=0)
+
+    @model_validator(mode="after")
+    def _check_separator_differs_from_decimal(self) -> Self:
+        if self.csv_separator == self.csv_decimal:
+            message = (
+                f"csv_separator and csv_decimal are both '{self.csv_decimal}': a decimal "
+                f"number would split into two columns"
+            )
+            raise ValueError(message)
+        return self
 
 
 class PathsConfig(_StrictModel):

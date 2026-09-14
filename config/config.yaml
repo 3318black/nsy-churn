@@ -96,6 +96,9 @@ export:
   # utf-8-sig : Excel sous Windows casse les accents sans marque d'ordre d'octets.
   csv_encoding: "utf-8-sig"
   csv_separator: ";"
+  # Excel en francais lit la virgule comme separateur decimal. Doit differer
+  # du separateur de colonnes, verifie au demarrage.
+  csv_decimal: ","
   max_label_length: 255
 
 # Chemins. Aucun module ne fabrique un chemin lui-meme.

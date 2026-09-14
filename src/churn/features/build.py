@@ -42,7 +42,15 @@ import pandas as pd
 from churn.data.schemas import Dataset, DatetimeResolution, EventType
 from churn.features.windows import build_window_features, read_state_at
 
-__all__ = ["GridSpec", "TrainingSet", "build_grid", "build_training_set"]
+__all__ = [
+    "GridSpec",
+    "ScoringSet",
+    "TrainingSet",
+    "build_grid",
+    "build_scoring_set",
+    "build_training_set",
+    "observation_dates",
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,7 +88,7 @@ class TrainingSet(NamedTuple):
     features: pd.DataFrame
 
 
-def _observation_dates(events: pd.DataFrame, spec: GridSpec) -> pd.DatetimeIndex:
+def observation_dates(events: pd.DataFrame, spec: GridSpec) -> pd.DatetimeIndex:
     """Return the observation dates covering the usable history.
 
     The history starts where the journal starts, never at the oldest account
@@ -99,6 +107,65 @@ def _observation_dates(events: pd.DataFrame, spec: GridSpec) -> pd.DatetimeIndex
     )
 
 
+class ScoringSet(NamedTuple):
+    """The accounts to score on one date, and their features.
+
+    Attributes:
+        grid: ``client_id``, ``T0`` and ``mrr``, the revenue in force at ``T0``.
+        features: the feature matrix, aligned row by row on ``grid``.
+        date: the scoring date, kept even when no account is eligible.
+    """
+
+    grid: pd.DataFrame
+    features: pd.DataFrame
+    date: pd.Timestamp
+
+
+def _eligible_pairs(dataset: Dataset, spec: GridSpec, dates: pd.DatetimeIndex) -> pd.DataFrame:
+    """Return the ``(client_id, T0)`` pairs an account may be observed on.
+
+    These rules are shared by training and scoring, so a model is never asked
+    about an account it could not have learned from. The rule on a known outcome
+    is not here: it belongs to training alone, since scoring is precisely about an
+    outcome nobody knows yet.
+    """
+    accounts = dataset.accounts
+    minimum_age = pd.Timedelta(days=spec.min_account_age_days)
+    grid = pd.MultiIndex.from_product(
+        [accounts["client_id"].to_numpy(), dates], names=["client_id", "T0"]
+    ).to_frame(index=False)
+    grid = grid.join(
+        accounts.set_index("client_id")[["date_debut_contrat", "date_resiliation"]],
+        on="client_id",
+    )
+
+    ended = grid["date_resiliation"]
+    active = ended.isna() | (ended > grid["T0"])
+    old_enough = (grid["T0"] - grid["date_debut_contrat"]) >= minimum_age
+
+    # An account enters the grid only once it has been observed, with at least
+    # one event strictly before T0. Before that it is registered but not yet a
+    # customer, and predicting its termination means nothing. The first event is
+    # read strictly before T0, so eligibility depends on no later fact.
+    first_seen = dataset.events.groupby("client_id")["event_ts"].min().rename("first_seen")
+    grid = grid.join(first_seen, on="client_id")
+    observed = grid["first_seen"].notna() & (grid["first_seen"] < grid["T0"])
+
+    return grid.loc[active & old_enough & observed].copy()
+
+
+def _revenue_at_t0(grid: pd.DataFrame, dataset: Dataset, spec: GridSpec) -> pd.Series:
+    """Return the revenue in force strictly before ``T0``, zero when none is known.
+
+    Zero means unknown rather than free: the KKBox extract starts in 2015, and a
+    long plan bought earlier only shows at its renewal. It is never filled from
+    the reference, which would bring the leak of decision D18 back.
+    """
+    return read_state_at(
+        grid, dataset.events, EventType.REVENU_MENSUEL.value, spec.resolution
+    ).fillna(0.0)
+
+
 def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
     """Build the observation grid and its target.
 
@@ -110,57 +177,72 @@ def build_grid(dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
         A frame with ``client_id``, ``T0``, ``y`` and the columns carried for
         evaluation, sorted deterministically.
     """
-    accounts = dataset.accounts
-    dates = _observation_dates(dataset.events, spec)
-    if accounts.empty or len(dates) == 0:
+    dates = observation_dates(dataset.events, spec)
+    if dataset.accounts.empty or len(dates) == 0:
         return pd.DataFrame(columns=["client_id", "T0", "y", "mrr"])
 
     history_end = dataset.events["event_ts"].max()
     horizon = pd.Timedelta(days=spec.horizon_days)
-    minimum_age = pd.Timedelta(days=spec.min_account_age_days)
+    grid = _eligible_pairs(dataset, spec, dates)
 
-    grid = pd.MultiIndex.from_product(
-        [accounts["client_id"].to_numpy(), dates], names=["client_id", "T0"]
-    ).to_frame(index=False)
-    grid = grid.join(
-        accounts.set_index("client_id")[["date_debut_contrat", "date_resiliation"]],
-        on="client_id",
-    )
-
-    started = grid["date_debut_contrat"]
-    ended = grid["date_resiliation"]
-    active = ended.isna() | (ended > grid["T0"])
-    old_enough = (grid["T0"] - started) >= minimum_age
     # A pair whose target window runs past the end of the history has an unknown
     # outcome, not a negative one. Labelling it zero would bias the most recent
     # period, which is exactly the one a model is judged on.
-    outcome_known = (grid["T0"] + horizon) <= history_end
-
-    # An account enters the grid only once it has been observed, with at least
-    # one event strictly before T0. Before that it is registered but not yet a
-    # customer, and predicting its termination means nothing. The first event is
-    # read strictly before T0, so eligibility depends on no later fact.
-    first_seen = dataset.events.groupby("client_id")["event_ts"].min().rename("first_seen")
-    grid = grid.join(first_seen, on="client_id")
-    observed = grid["first_seen"].notna() & (grid["first_seen"] < grid["T0"])
-
-    grid = grid.loc[active & old_enough & outcome_known & observed].copy()
-    grid["y"] = (
-        ended.loc[grid.index].notna()
-        & (ended.loc[grid.index] > grid["T0"])
-        & (ended.loc[grid.index] <= grid["T0"] + horizon)
-    ).astype("int64")
-    # Revenue in force strictly before T0, zero when the journal knows none yet.
-    # Zero means unknown rather than free: the KKBox extract starts in 2015, and
-    # a long plan bought earlier only shows at its renewal. Never filled from the
-    # reference, which would bring the leak of decision D18 back.
-    grid["mrr"] = read_state_at(
-        grid, dataset.events, EventType.REVENU_MENSUEL.value, spec.resolution
-    ).fillna(0.0)
+    grid = grid.loc[(grid["T0"] + horizon) <= history_end].copy()
+    ended = grid["date_resiliation"]
+    grid["y"] = (ended.notna() & (ended > grid["T0"]) & (ended <= grid["T0"] + horizon)).astype(
+        "int64"
+    )
+    grid["mrr"] = _revenue_at_t0(grid, dataset, spec)
 
     return grid.loc[:, ["client_id", "T0", "y", "mrr"]].sort_values(
         ["T0", "client_id"], kind="stable", ignore_index=True
     )
+
+
+def build_scoring_set(
+    dataset: Dataset, spec: GridSpec, scoring_date: pd.Timestamp | None = None
+) -> ScoringSet:
+    """Build the accounts to score on one date, and their features.
+
+    The same eligibility rules and the same features as training apply, so the
+    model sees on Monday exactly what it learned from. Only the target is absent:
+    on the scoring date, nobody knows the outcome yet.
+
+    Args:
+        dataset: the two contract tables.
+        spec: shape of the grid.
+        scoring_date: timezone aware scoring date. Defaults to the last
+            observation date the journal allows.
+
+    Returns:
+        The eligible accounts, sorted by identifier, and their features.
+
+    Raises:
+        ValueError: when the scoring date carries no timezone, or when the
+            journal allows no observation date at all.
+    """
+    if scoring_date is None:
+        dates = observation_dates(dataset.events, spec)
+        if len(dates) == 0:
+            message = "the journal is too short to allow any observation date"
+            raise ValueError(message)
+        date = dates[-1]
+    else:
+        if scoring_date.tzinfo is None:
+            message = f"the scoring date {scoring_date} must carry a timezone"
+            raise ValueError(message)
+        date = scoring_date.tz_convert("UTC").as_unit(spec.resolution)
+
+    grid = _eligible_pairs(dataset, spec, pd.DatetimeIndex([date]))
+    if grid.empty:
+        empty = pd.DataFrame(columns=["client_id", "T0", "mrr"])
+        return ScoringSet(grid=empty, features=pd.DataFrame(index=empty.index), date=date)
+    grid["mrr"] = _revenue_at_t0(grid, dataset, spec)
+    grid = grid.loc[:, ["client_id", "T0", "mrr"]].sort_values(
+        "client_id", kind="stable", ignore_index=True
+    )
+    return ScoringSet(grid=grid, features=_feature_matrix(grid, dataset, spec), date=date)
 
 
 def build_training_set(dataset: Dataset, spec: GridSpec) -> TrainingSet:
@@ -176,7 +258,11 @@ def build_training_set(dataset: Dataset, spec: GridSpec) -> TrainingSet:
     grid = build_grid(dataset, spec)
     if grid.empty:
         return TrainingSet(grid=grid, target=pd.Series(dtype="int64"), features=pd.DataFrame())
+    return TrainingSet(grid=grid, target=grid["y"], features=_feature_matrix(grid, dataset, spec))
 
+
+def _feature_matrix(grid: pd.DataFrame, dataset: Dataset, spec: GridSpec) -> pd.DataFrame:
+    """Return the feature matrix of a grid, shared by training and scoring."""
     features = build_window_features(
         grid[["client_id", "T0"]],
         dataset.events,
@@ -200,6 +286,4 @@ def build_training_set(dataset: Dataset, spec: GridSpec) -> TrainingSet:
         },
         index=grid.index,
     )
-    features = pd.concat([features, structural], axis=1)
-
-    return TrainingSet(grid=grid, target=grid["y"], features=features)
+    return pd.concat([features, structural], axis=1)
