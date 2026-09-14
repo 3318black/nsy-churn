@@ -80,7 +80,7 @@ def _run(monkeypatch: pytest.MonkeyPatch) -> AppTest:
 
 
 def test_the_online_interface_shows_the_kkbox_performance(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The real argument goes online: the six rankings measured on KKBox."""
+    """The real argument goes online: every ranking measured on KKBox."""
     app = _run(monkeypatch)
     assert not app.exception
     alerts = [element.value for element in app.info]
@@ -89,7 +89,9 @@ def test_the_online_interface_shows_the_kkbox_performance(monkeypatch: pytest.Mo
 
     app.sidebar.radio[0].set_value("Performance du modèle").run()
     assert not app.exception
-    assert len(app.dataframe[0].value) == 6
+    published = pd.read_csv(DEMO / PUBLISHED_KKBOX_FILES[1], comment="#")
+    assert len(app.dataframe[0].value) == len(published)
+    assert {"revenue", "logistic", "xgboost"} <= set(published["scorer"])
 
 
 def test_the_online_interface_browses_the_simulated_list(monkeypatch: pytest.MonkeyPatch) -> None:

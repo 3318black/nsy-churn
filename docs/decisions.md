@@ -231,7 +231,7 @@ Cette option reste peu coûteuse à activer plus tard parce que l'architecture e
 
 ## D16. Arbitrages liés à l'échéance de deux semaines
 
-**Statut** : Actée le 2026-09-07.
+**Statut** : Actée le 2026-09-07. L'échéance a été levée le 2026-09-13 ; la grille réduite est révisée par D23.
 
 L'échéance annoncée est inférieure à deux semaines. Les allègements suivants sont actés, et il vaut mieux les décider maintenant que les subir plus tard.
 
@@ -352,6 +352,27 @@ L'interface en ligne ne publie aucune donnée individuelle KKBox : ni export, ni
 **Mise en œuvre.** Le dossier `demo/` est une racine de projet complète, construite par `scripts/build_demo.py`, qui refuse de copier un fichier portant une colonne d'identifiant. L'application en ligne le lit par la variable `NSY_CHURN_ROOT`, déclarée dans les secrets de Streamlit Community Cloud et résolue depuis la racine du dépôt. Sa configuration renseigne `interface.missing_export_notice`, qui explique, à la place de la liste KKBox, pourquoi elle n'est pas publiée. Deux tests gardent la règle : les seuls fichiers KKBox de `demo/` sont les deux agrégats, et tout identifiant publié suit le format du générateur synthétique.
 
 **Exception au suivi de version.** `demo/` est le seul dossier de données versionné, parce qu'une application en ligne lit ses fichiers depuis le dépôt. Il ne contient que des données simulées et des agrégats.
+
+---
+
+## D23. Mesure complémentaire : grille élargie et régression logistique réglée
+
+**Statut** : Actée le 2026-09-14. Décidée avant la mesure, consignée après. Révise la grille réduite de D16.
+
+Deux changements ont été décidés avant de mesurer, pour que leur résultat ne puisse pas les choisir.
+
+- **La grille XGBoost passe de 8 à 24 combinaisons**, vers des modèles plus simples : profondeurs 2, 3, 4 et 6, et 100, 300 ou 600 arbres. La grille réduite de D16 tenait à une échéance, levée depuis.
+- **Une régression logistique réglée rejoint les lignes de base.** Elle compresse les variables par un logarithme signé, puis choisit sa force de régularisation parmi 0,01, 0,1, 1 et 10, sur la même validation interne que XGBoost. La sélection devient une fonction générique, `churn.evaluation.selection`.
+
+**Motif.** Au lot 5, la sélection se logeait dans le coin le plus prudent de la grille, et la régression logistique n'était pas réglée. Un lecteur pouvait objecter que le modèle battait une ligne de base trop faible.
+
+**Résultat sur KKBox, mesure du 14 septembre.**
+
+- **La logistique réglée fait moins bien que la logistique simple en tête de liste** : Precision@50 de 0,126 contre 0,149, inférieure sur les quatre plis. Son ROC-AUC est un peu meilleur, 0,739 contre 0,721 : elle ordonne mieux la liste entière et moins bien ses 50 premiers. La force retenue varie de 0,1 à 10 selon le pli, signe que la validation interne départage mal ces réglages.
+- **Le gain du modèle se mesure donc contre la plus forte des logistiques**, la simple : +0,176 à variables financières égales, positif sur les quatre plis, avec un écart type de 0,005.
+- **La grille élargie ne change pas le résultat au-delà du bruit** : Precision@50 de 0,323 pour XGBoost contre 0,333 au lot 5, soit −0,010 en moyenne par pli pour un écart type de 0,014. La sélection par pli retient plus souvent la profondeur 3 ou 100 arbres. Le modèle final, entraîné sur toute la grille, garde profondeur 4, 300 arbres et taux 0,05 : même version, même export.
+
+**Ce qui est retenu.** La grille élargie reste en configuration, puisqu'elle était décidée avant la mesure. Revenir à la grille réduite parce qu'elle donne un meilleur chiffre en test reviendrait à choisir un réglage en regardant le test. Les chiffres de référence du projet deviennent ceux de cette mesure.
 
 ---
 

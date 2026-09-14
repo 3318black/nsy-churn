@@ -52,6 +52,8 @@ SCORER_LABELS = {
     "revenue": "Tri par revenu",
     "logistic_finance": "Régression logistique, paiements seuls",
     "logistic": "Régression logistique",
+    "logistic_tuned_finance": "Régression logistique réglée, paiements seuls",
+    "logistic_tuned": "Régression logistique réglée",
     "xgboost_finance": "XGBoost, paiements seuls",
     "xgboost": "XGBoost",
 }

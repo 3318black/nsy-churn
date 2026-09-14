@@ -1,15 +1,17 @@
-"""Training of the gradient boosted model, decisions D12 and D16.
+"""Training of the gradient boosted model, decisions D12 and D23.
 
 Two rules matter more than the model itself.
 
 Selection never sees the test period
     The hyperparameters are chosen on an inner chronological split of the
-    training rows alone, cut with the same embargo and purge as the outer folds.
-    Choosing them on the test folds would turn the evaluation into a selection,
-    and the reported Precision@K into the best of eight draws.
-The grid stays small
-    Eight combinations, set in the configuration. A marginal gain from a wider
-    search is invisible next to a sound protocol. Decision D16.
+    training rows alone, cut with the same embargo and purge as the outer folds,
+    by the generic selection of :mod:`churn.evaluation.selection`. Choosing them
+    on the test folds would turn the evaluation into a selection, and the
+    reported Precision@K into the best of many draws.
+The grid reaches simple models
+    The grid of decision D16 was cut short by a deadline, and the selection kept
+    landing in its most cautious corner. Decision D23 widens it towards shallower
+    and smaller models, so that corner is no longer a wall.
 """
 
 from __future__ import annotations
@@ -27,8 +29,7 @@ import pandas as pd
 import xgboost as xgb
 
 from churn.config import FeatureMappingEntry, FeatureSource, ParamGridConfig
-from churn.evaluation.metrics import precision_at_k
-from churn.evaluation.splitting import temporal_folds
+from churn.evaluation.selection import Selection, SelectionSettings, select_candidate
 from churn.features.build import TrainingSet
 from churn.features.catalog import family_of, select_families
 from churn.models.explain import (
@@ -88,40 +89,6 @@ def param_candidates(grid: ParamGridConfig) -> tuple[BoosterParams, ...]:
     )
 
 
-@dataclass(frozen=True, slots=True)
-class SelectionSettings:
-    """What the inner selection needs to measure a candidate.
-
-    Attributes:
-        k: handling capacity per period.
-        frequency: scoring period frequency.
-        horizon_days: days the target resolves over.
-        embargo_days: days kept empty between inner training and validation.
-        seed: seed of every fit.
-    """
-
-    k: int
-    frequency: str
-    horizon_days: int
-    embargo_days: int
-    seed: int
-
-
-@dataclass(frozen=True, slots=True)
-class Selection:
-    """Outcome of one selection.
-
-    Attributes:
-        params: the chosen combination.
-        scores: Precision@K of each candidate on the inner validation.
-        fallback_reason: why no measure could be taken, empty when one was.
-    """
-
-    params: BoosterParams
-    scores: pd.DataFrame
-    fallback_reason: str
-
-
 def fit_classifier(
     features: pd.DataFrame, target: pd.Series, params: BoosterParams, seed: int
 ) -> xgb.XGBClassifier:
@@ -138,22 +105,15 @@ def fit_classifier(
     return classifier
 
 
-def _fallback(candidates: Sequence[BoosterParams], reason: str) -> Selection:
-    """Return the first candidate, saying loudly why nothing was measured."""
-    logger.warning("hyperparameter selection skipped", extra={"reason": reason})
-    return Selection(params=candidates[0], scores=pd.DataFrame(), fallback_reason=reason)
-
-
 def select_params(
     training: TrainingSet,
     candidates: Sequence[BoosterParams],
     settings: SelectionSettings,
-) -> Selection:
+) -> Selection[BoosterParams]:
     """Choose the hyperparameters on an inner split of the training rows.
 
-    The training dates are cut in two chronological halves, with the embargo and
-    the purge of the outer protocol. Each candidate fits on the first half and is
-    measured by its Precision@K on the second. Ties go to the earlier candidate.
+    The generic selection of :mod:`churn.evaluation.selection` does the cutting
+    and the measuring; this function only says how a booster fits and scores.
 
     Args:
         training: grid, target and features of the training rows only.
@@ -163,41 +123,12 @@ def select_params(
     Returns:
         The chosen combination and the measure of every candidate.
     """
-    if not candidates:
-        message = "at least one hyperparameter combination is required"
-        raise ValueError(message)
-    try:
-        folds = temporal_folds(
-            training.grid["T0"],
-            n_splits=1,
-            horizon_days=settings.horizon_days,
-            embargo_days=settings.embargo_days,
-        )
-    except ValueError as error:
-        return _fallback(candidates, str(error))
-    if not folds:
-        return _fallback(candidates, "the inner split leaves no training row")
 
-    fold = folds[0]
-    inner_target = training.target.iloc[fold.train_index]
-    validation = training.grid.iloc[fold.test_index]
-    if inner_target.nunique() < _BINARY_CLASSES or validation["y"].sum() == 0:
-        return _fallback(candidates, "the inner split holds a single class")
+    def score(params: BoosterParams, inner: TrainingSet, validation: pd.DataFrame) -> np.ndarray:
+        classifier = fit_classifier(inner.features, inner.target, params, settings.seed)
+        return classifier.predict_proba(as_model_input(validation))[:, 1]
 
-    inner_features = training.features.iloc[fold.train_index]
-    validation_features = as_model_input(training.features.iloc[fold.test_index])
-    rows: list[dict[str, float]] = []
-    for params in candidates:
-        classifier = fit_classifier(inner_features, inner_target, params, settings.seed)
-        ranking = validation[["T0", "client_id", "mrr", "y"]].assign(
-            score=classifier.predict_proba(validation_features)[:, 1]
-        )
-        measure = precision_at_k(ranking, settings.k, settings.frequency)
-        rows.append({**asdict(params), "precision_at_k": measure})
-
-    scores = pd.DataFrame(rows)
-    best = int(np.argmax(scores["precision_at_k"].fillna(-1.0).to_numpy()))
-    return Selection(params=candidates[best], scores=scores, fallback_reason="")
+    return select_candidate(training, candidates, settings, score, asdict)
 
 
 class XGBoostScorer:

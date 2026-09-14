@@ -15,6 +15,7 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Branche** | Copie de travail parallèle du code, dans Git. | 2 |
 | **Churn** | Départ d'un abonné qui arrête son abonnement. Aussi appelé attrition ou résiliation. | 1 |
 | **Cible** | La réponse que le modèle doit apprendre à prédire. Ici, 1 si l'abonné part dans les 30 jours, 0 sinon. | 5 |
+| **Compression logarithmique** | Transformation qui rapproche les valeurs extrêmes, par exemple 1, 10, 100 et 1 000 en 0,7, 2,4, 4,6 et 6,9, pour qu'elles ne dominent pas un modèle linéaire. | 8 |
 | **Commit** | Enregistrement d'une version du code dans Git, accompagné d'un message. | 2 |
 | **Contrat de données** | Description fixe de la forme des données acceptées : tables, colonnes, types et règles. | 4 |
 | **Contrôle par force brute** | Test qui recalcule les variables de la façon la plus naïve pour vérifier le calcul rapide. | 6 |
@@ -52,6 +53,7 @@ Les termes du cours, par ordre alphabétique. Le numéro renvoie au chapitre où
 | **Purge** | Retrait des lignes d'apprentissage dont la cible se résout après le début du test. | 7 |
 | **Rappel au rang K** | Parmi tous les abonnés partis, part de ceux qui figuraient dans les listes des K premiers. | 7 |
 | **Registre des décisions** | Fichier qui consigne chaque choix important avec sa date, son statut et son motif. | 2 |
+| **Régularisation** | Pénalité qui retient les poids d'un modèle pour l'empêcher d'apprendre le bruit des données. Sa force est un réglage à choisir. | 8 |
 | **Régression logistique** | Modèle simple qui pondère les variables, les additionne et transforme la somme en score entre 0 et 1. | 7 |
 | **ROC-AUC** | Mesure de la capacité à placer les abonnés qui partent au-dessus de ceux qui restent. 0,5 correspond au hasard, 1 à un classement parfait. | 7 |
 | **Sentinelle anti-fuite** | Test qui supprime les événements à partir de la date d'observation et vérifie qu'aucune variable ne change. | 6 |

@@ -24,16 +24,17 @@ contract.
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from typing import Protocol
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 from churn.config import FeatureSource
+from churn.evaluation.selection import Selection, SelectionSettings, select_candidate
 from churn.features.build import TrainingSet
 from churn.features.catalog import select_families
 
@@ -42,13 +43,19 @@ __all__ = [
     "RandomScorer",
     "RevenueScorer",
     "Scorer",
+    "TunedLogisticScorer",
     "default_baselines",
+    "signed_log1p",
 ]
 
 logger = logging.getLogger(__name__)
 
 #: Classes a classifier needs to learn anything.
 _BINARY_CLASSES = 2
+
+#: Iteration cap of the tuned regression. Compressed and scaled columns converge
+#: quickly; the cap only guards against a pathological fold.
+_TUNED_MAX_ITER = 2000
 
 
 class Scorer(Protocol):
@@ -175,6 +182,101 @@ class LogisticScorer:
         )
         self.pipeline.fit(self._clean(self._scoped(train.features)), train.target.to_numpy())
         return self.pipeline.predict_proba(self._clean(self._scoped(test_features)))[:, 1]
+
+
+def signed_log1p(values: np.ndarray) -> np.ndarray:
+    """Compress heavy tailed values, keeping their sign.
+
+    A count of listening days runs from zero to ninety, a sum of invoiced amounts
+    into the thousands, and a few accounts sit far above the rest. A linear model
+    reads such columns badly: the extreme accounts pull every weight. The
+    logarithm brings them back to a comparable scale; the sign keeps the few
+    signed families, such as payment delays, meaningful.
+    """
+    return np.sign(values) * np.log1p(np.abs(values))
+
+
+class TunedLogisticScorer:
+    """Logistic regression made a fair opponent, decision D23.
+
+    The plain baseline standardises raw columns and keeps the default penalty.
+    This one compresses heavy tails first, then chooses its penalty on the same
+    inner chronological split the boosted trees are tuned on. If the trees still
+    beat it clearly, the gain cannot be blamed on a weak baseline.
+    """
+
+    def __init__(
+        self,
+        regularisations: Sequence[float],
+        settings: SelectionSettings,
+        families: Collection[FeatureSource] | None = None,
+        name: str = "logistic_tuned",
+    ) -> None:
+        """Initialise the scorer.
+
+        Args:
+            regularisations: inverse penalty strengths to choose from, ``C``.
+            settings: what the inner selection needs.
+            families: feature families to learn from, all of them when ``None``.
+            name: name the scorer is reported under.
+        """
+        if not regularisations:
+            message = "at least one regularisation strength is required"
+            raise ValueError(message)
+        self._regularisations = tuple(regularisations)
+        self._settings = settings
+        self._families = families
+        self.name = name
+        self.selections: list[Selection[float]] = []
+        self.pipeline: Pipeline | None = None
+
+    @staticmethod
+    def build_pipeline(regularisation: float) -> Pipeline:
+        """Return the unfitted pipeline: compression, scaling, regression."""
+        return make_pipeline(
+            FunctionTransformer(signed_log1p),
+            StandardScaler(),
+            LogisticRegression(C=regularisation, max_iter=_TUNED_MAX_ITER),
+        )
+
+    def _scoped(self, features: pd.DataFrame) -> pd.DataFrame:
+        """Return the features of the families this scorer learns from."""
+        return features if self._families is None else select_families(features, self._families)
+
+    def fit_score(
+        self,
+        train: TrainingSet,
+        test_features: pd.DataFrame,
+        test_grid: pd.DataFrame,
+    ) -> np.ndarray:
+        """Choose the penalty on the training rows, fit, and score the test rows."""
+        del test_grid
+        if train.target.nunique() < _BINARY_CLASSES:
+            logger.warning("training fold holds a single class, constant scores returned")
+            self.pipeline = None
+            return np.zeros(len(test_features))
+
+        train = train._replace(features=self._scoped(train.features))
+        test_features = self._scoped(test_features)
+
+        def score(
+            regularisation: float, inner: TrainingSet, validation: pd.DataFrame
+        ) -> np.ndarray:
+            pipeline = self.build_pipeline(regularisation)
+            pipeline.fit(LogisticScorer._clean(inner.features), inner.target.to_numpy())
+            return pipeline.predict_proba(LogisticScorer._clean(validation))[:, 1]
+
+        selection = select_candidate(
+            train,
+            self._regularisations,
+            self._settings,
+            score,
+            lambda regularisation: {"regularisation": regularisation},
+        )
+        self.selections.append(selection)
+        self.pipeline = self.build_pipeline(selection.params)
+        self.pipeline.fit(LogisticScorer._clean(train.features), train.target.to_numpy())
+        return self.pipeline.predict_proba(LogisticScorer._clean(test_features))[:, 1]
 
 
 def default_baselines(seed: int) -> list[Scorer]:

@@ -221,6 +221,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 
 **Mesure complémentaire préalable, choix arrêté le 2026-09-14.** Avant d'écrire les résultats, une dernière mesure dans le protocole du lot 4 : une grille de réglages élargie vers des modèles plus simples, la sélection du lot 5 se logeant dans son coin le plus prudent, et une régression logistique mieux préparée, avec régularisation choisie et comptages transformés. Le but est que la comparaison publiée résiste à l'objection d'une ligne de base trop faible. Les chiffres retenus remplacent ceux du lot 5 dans `docs/resultats.md` s'ils changent.
 
+**Réalisée le 2026-09-14, décision D23.** La régression logistique réglée fait moins bien que la simple en tête de liste, 0,126 contre 0,149, et la grille élargie ne change pas le résultat au-delà du bruit, 0,323 contre 0,333. Le gain du modèle contre la plus forte des logistiques est de +0,176, positif sur les quatre plis. Les chiffres de référence du README sont ceux de cette mesure.
+
 **Plan imposé**
 
 1. le problème métier et la définition exacte de la cible
