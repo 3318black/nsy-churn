@@ -157,7 +157,7 @@ Trois sections, courtes.
 
 Un test qui échoue se rapporte tel quel, avec sa sortie. Une étape sautée se signale. Ne présente jamais comme vérifié ce qui ne l'a pas été.
 
-**Document de cours, obligatoire à chaque lot.** Chaque lot livré s'accompagne d'un fichier `docs/cours/lot-<n>-<sujet>.md`, versé dans la même pull request que le code. Il explique ce qui a été fait, pourquoi et comment, rédigé comme un cours donné à un débutant : le problème de départ, chaque notion définie à sa première apparition, les vrais chiffres du projet, les erreurs rencontrées et ce qu'elles ont appris. Les règles d'écriture sont dans `docs/cours/README.md`. Consigne du propriétaire du projet, posée le 2026-09-13.
+**Cours, obligatoire à chaque lot.** Le projet tient un cours unique pour débutant dans `docs/cours/`, sur le modèle d'un cours en ligne de type OpenClassrooms : des parties, des chapitres numérotés, et un quiz par partie. Il commence par l'application, sa méthode de réalisation et ses choix technologiques. Chaque lot livré ajoute ou complète le chapitre de sa partie, dans la même pull request que le code, et met à jour le glossaire et le sommaire. Chaque chapitre suit la même structure : objectifs, contenu avec les vrais chiffres du projet et les erreurs rencontrées, exercice corrigé, résumé. Les règles d'écriture sont dans `docs/cours/README.md`. Consigne du propriétaire du projet, posée le 2026-09-13 et précisée le 2026-09-14.
 
 ---
 
