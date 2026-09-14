@@ -1,13 +1,14 @@
-"""Read only interface of nsy-churn, lot 7.
+"""Read only interface of nsy-churn, lots 7 and 8.
 
     uv run streamlit run app/streamlit_app.py
 
-Three screens display what the pipeline produced: the Monday list, the sheet of
-one account, and the performance of the model against the baselines. A banner
-states the data source on every screen. The application trains no model, scores
-no account and recomputes no measure: everything is read from the files written
-by ``churn.pipeline.run_scoring`` and ``scripts/train_model.py``, and every
-parameter comes from ``config/config.yaml``. Decisions D15 and D21.
+Four screens display what the pipeline produced: the project at a glance, the
+Monday list, the sheet of one account, and the performance of the model against
+the baselines. A banner states the data source on every screen. The application
+trains no model, scores no account and recomputes no measure: everything is read
+from the files written by ``churn.pipeline.run_scoring`` and
+``scripts/train_model.py``, and every parameter comes from ``config/config.yaml``.
+Decisions D15 and D21.
 
 The ``NSY_CHURN_ROOT`` environment variable points the application at another
 project root, which is how the tests run it on temporary files.
@@ -26,8 +27,9 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from churn.config import AppConfig, FeatureSource, load_config
+from churn.config import AppConfig, FeatureSource, load_config, load_feature_mapping
 from churn.data.schemas import EVENT_FAMILIES, STATE_EVENT_TYPES
+from churn.interface.accounts import RECENT_ACTIVITY_DAYS, account_profile, suggested_actions
 from churn.interface.readers import (
     LoadedExport,
     account_contributions,
@@ -41,10 +43,14 @@ from churn.interface.readers import (
 )
 from churn.pipeline.schemas import CONTRIBUTIONS_SUFFIX, EXPORT_FILE_PREFIX, FACTOR_COLUMNS
 
+HOME_SCREEN = "Le projet"
 LIST_SCREEN = "Liste du lundi"
 ACCOUNT_SCREEN = "Fiche d'un compte"
 PERFORMANCE_SCREEN = "Performance du modèle"
-SCREENS = (LIST_SCREEN, ACCOUNT_SCREEN, PERFORMANCE_SCREEN)
+SCREENS = (HOME_SCREEN, LIST_SCREEN, ACCOUNT_SCREEN, PERFORMANCE_SCREEN)
+
+#: Where the code, the course and the results live.
+REPOSITORY_URL = "https://github.com/3318black/nsy-churn"
 
 #: Display names of the rankings of the evaluation report.
 SCORER_LABELS = {
@@ -108,6 +114,11 @@ def _french(value: float, decimals: int) -> str:
     return f"{value:.{decimals}f}".replace(".", ",")
 
 
+def _french_date(day: date | None) -> str:
+    """Format a date for a French reader, or say it is unknown."""
+    return day.strftime("%d/%m/%Y") if day else "Inconnue"
+
+
 @st.cache_data(show_spinner=False)
 def _cached_export(directory: str, day: str, modified: int) -> LoadedExport:
     """Read an export once per version of its files."""
@@ -140,10 +151,112 @@ def _no_export(source: str, notice: str) -> None:
     )
 
 
-def _show_list(export: LoadedExport | None, source: str, export_dir: Path) -> None:
+def _key_figures(summary: pd.DataFrame, capacity: int) -> list[tuple[str, float]]:
+    """Return the departures found per week by the model and its two main baselines.
+
+    Read from the evaluation report: the best ranking, the strongest logistic
+    regression and the revenue ranking. The product by the capacity only turns a
+    precision into a number of calls, it measures nothing new.
+    """
+    figures: list[tuple[str, float]] = []
+    best = summary.loc[summary["precision_at_k"].idxmax()]
+    figures.append((str(best["scorer"]), float(best["precision_at_k"]) * capacity))
+    logistic = summary.loc[summary["scorer"].str.startswith("logistic")]
+    if not logistic.empty:
+        strongest = logistic.loc[logistic["precision_at_k"].idxmax()]
+        figures.append((str(strongest["scorer"]), float(strongest["precision_at_k"]) * capacity))
+    revenue = summary.loc[summary["scorer"] == "revenue"]
+    if not revenue.empty:
+        figures.append(("revenue", float(revenue["precision_at_k"].iloc[0]) * capacity))
+    return figures
+
+
+def _show_home(config: AppConfig, source: str, is_synthetic: bool) -> None:
+    """Screen 0: the project at a glance, for a first visit."""
+    capacity = config.business.weekly_capacity_k
+    st.markdown(
+        "Un service par abonnement perd chaque mois des abonnés. Une équipe ne peut pas "
+        f"tous les appeler : si elle peut en appeler **{capacity} par semaine**, lesquels "
+        "appeler en priorité, et que leur dire ?\n\n"
+        "Cette application répond à cette question. Chaque lundi, elle classe les abonnés "
+        "actifs selon leur risque de partir dans les semaines qui suivent, et donne pour "
+        "chacun jusqu'à trois motifs sur lesquels un conseiller peut agir."
+    )
+
+    st.subheader(f"Le résultat, sur {capacity} appels par semaine")
+    directory = config.paths.reports / source / "models"
+    summary = evaluation_summary(directory)
+    if summary.empty:
+        st.info(
+            "Aucun rapport d'évaluation pour cette source : les chiffres clés apparaîtront "
+            f"après `uv run python scripts/train_model.py --source {source}`."
+        )
+    else:
+        figures = _key_figures(summary, capacity)
+        columns = st.columns(len(figures))
+        for column, (scorer, departures) in zip(columns, figures, strict=True):
+            column.metric(
+                SCORER_LABELS.get(scorer, scorer), f"{_french(departures, 0)} départs trouvés"
+            )
+        st.caption(
+            "Nombre moyen d'abonnés réellement partis dans l'horizon parmi ceux appelés chaque "
+            "semaine, mesuré sur des semaines passées que chaque méthode n'a jamais vues. "
+            + (
+                "Données simulées : ces chiffres testent la chaîne, ils ne valent pas performance."
+                if is_synthetic
+                else "Détail et limites sur l'écran « Performance du modèle »."
+            )
+        )
+
+    st.subheader("Comment ça marche")
+    steps = st.columns(4)
+    steps[0].markdown(
+        "**1. Les données**\n\nL'historique daté de chaque abonné : paiements, "
+        "renouvellements, annulations et usage du service."
+    )
+    steps[1].markdown(
+        "**2. Un tableau sans tricher**\n\nChaque lundi passé devient une photo de chaque "
+        "abonné, calculée uniquement avec ce qui s'était produit avant."
+    )
+    steps[2].markdown(
+        "**3. Un modèle évalué honnêtement**\n\nIl apprend sur le passé et se juge sur des "
+        "semaines qu'il n'a jamais vues, face à des méthodes simples."
+    )
+    steps[3].markdown(
+        "**4. Une liste expliquée**\n\nLe classement de la semaine, avec pour chaque abonné "
+        "les motifs de son risque et l'action conseillée."
+    )
+
+    st.subheader("Pourquoi s'y fier")
+    st.markdown(
+        "- **Le temps est respecté** : apprentissage et test sont séparés dans le temps, avec "
+        "une période tampon, et un test automatique vérifie qu'aucune information du futur "
+        "ne sert à prédire.\n"
+        "- **La mesure correspond au métier** : la précision des premiers appels de chaque "
+        "semaine, pas une exactitude globale trompeuse quand les départs sont rares.\n"
+        "- **Le modèle est comparé** au hasard, au tri par revenu et à des régressions "
+        "logistiques, dont une version réglée, sur les mêmes semaines.\n"
+        "- **Rien n'est inventé** : un abonné sans motif significatif n'en reçoit aucun, et "
+        "les motifs sans levier d'action ne sont jamais affichés."
+    )
+
+    st.subheader("Limites assumées")
+    st.markdown(
+        f"- La capacité de {capacity} appels par semaine est une hypothèse de démonstration.\n"
+        "- Le score n'est pas une probabilité : la liste se lit par rang et par décile.\n"
+        "- Les motifs nomment un signal sans en donner le sens, par exemple « Fréquence "
+        "d'usage » et non « Baisse de l'usage »."
+    )
+
+    st.markdown(
+        f"**En savoir plus** : [le code]({REPOSITORY_URL}) · "
+        f"[le cours pour débutant]({REPOSITORY_URL}/blob/main/docs/cours/README.md) · "
+        f"[les résultats détaillés]({REPOSITORY_URL}/blob/main/docs/resultats.md)"
+    )
+
+
+def _show_list(export: LoadedExport, export_dir: Path) -> None:
     """Screen 1: the prioritised list of the week."""
-    if export is None:
-        return
     identity = export.identity
     rows = export.rows
     head = rows.loc[rows["is_top_k"].astype(bool)] if not rows.empty else rows
@@ -235,9 +348,43 @@ def _contribution_chart(contributions: pd.DataFrame, motifs: list[str], threshol
     return chart + rule
 
 
-def _show_history(config: AppConfig, source: str, client_id: str, export: LoadedExport) -> None:
+def _show_profile(config: AppConfig, source: str, client_id: str, before: pd.Timestamp) -> None:
+    """What was known about the account on the scoring date."""
+    directory = config.paths.processed / source
+    profile = account_profile(
+        directory / "accounts.parquet", directory / "events.parquet", client_id, before
+    )
+    if profile.is_empty:
+        st.info("Aucun profil disponible pour ce compte avec cette source.")
+        return
+
+    first = st.columns(4)
+    first[0].metric("Inscription", _french_date(profile.registered))
+    tenure = profile.tenure_days
+    first[1].metric("Ancienneté", f"{tenure // 30} mois" if tenure is not None else "Inconnue")
+    first[2].metric(
+        "Dernier usage",
+        f"Il y a {profile.days_since_usage} jours"
+        if profile.days_since_usage is not None
+        else "Aucun",
+    )
+    first[3].metric(f"Jours actifs sur {RECENT_ACTIVITY_DAYS} jours", profile.active_days_recent)
+
+    second = st.columns(4)
+    second[0].metric("Dernière facture", _french_date(profile.last_payment))
+    amount = profile.last_payment_amount
+    second[1].metric("Montant facturé", _french(amount, 2) if amount is not None else "Inconnu")
+    second[2].metric("Annulations passées", profile.cancellations)
+    second[3].metric("Renouvellement automatique désactivé", f"{profile.auto_renew_disabled} fois")
+    st.caption(
+        "Tout ce profil est antérieur à la date de scoring. Le type de contrat, le segment et "
+        "le canal d'acquisition ne sont pas affichés : ils décrivent l'abonné à la date "
+        "d'extraction ou ne sont que des codes sans signification."
+    )
+
+
+def _show_history(config: AppConfig, source: str, client_id: str, before: pd.Timestamp) -> None:
     """The events of the account strictly before the scoring date."""
-    before = pd.Timestamp(export.identity.date_scoring.isoformat(), tz="UTC")
     history = account_history(config.paths.processed / source / "events.parquet", client_id, before)
     if history.empty:
         st.info("Aucun historique disponible pour ce compte avec cette source.")
@@ -277,10 +424,8 @@ def _show_history(config: AppConfig, source: str, client_id: str, export: Loaded
         )
 
 
-def _show_account(export: LoadedExport | None, config: AppConfig, source: str) -> None:
+def _show_account(export: LoadedExport, config: AppConfig, source: str) -> None:
     """Screen 2: the sheet of one account."""
-    if export is None:
-        return
     rows = export.rows
     if rows.empty:
         st.info("Cet export ne contient aucun compte éligible à la date de scoring.")
@@ -291,6 +436,7 @@ def _show_account(export: LoadedExport | None, config: AppConfig, source: str) -
         "Compte", rows["client_id"].tolist(), format_func=lambda c: f"Rang {ranks[c]} · {c}"
     )
     row = rows.loc[rows["client_id"] == client_id].iloc[0]
+    before = pd.Timestamp(export.identity.date_scoring.isoformat(), tz="UTC")
 
     columns = st.columns(4)
     columns[0].metric("Rang", int(row["rang_priorite"]))
@@ -299,14 +445,22 @@ def _show_account(export: LoadedExport | None, config: AppConfig, source: str) -
     columns[2].metric("Revenu mensuel", _french(revenue, 2) if revenue > 0 else "Inconnu")
     columns[3].metric("Appelé cette semaine", "Oui" if bool(row["is_top_k"]) else "Non")
 
-    st.subheader("Motifs affichés")
+    st.subheader("Que dire au téléphone")
     motifs = [str(row[column]) for column in FACTOR_COLUMNS if row[column]]
     if motifs:
-        st.markdown("\n".join(f"{position}. {motif}" for position, motif in enumerate(motifs, 1)))
+        actions = suggested_actions(load_feature_mapping(config.paths.feature_mapping))
+        for position, motif in enumerate(motifs, 1):
+            st.markdown(f"**{position}. {motif}**")
+            action = actions.get(motif)
+            if action:
+                st.caption(f"Action conseillée : {action}")
     else:
         st.write(
             "Aucun motif significatif : la case reste vide plutôt que d'afficher un motif inventé."
         )
+
+    st.subheader("Profil de l'abonné à la date de scoring")
+    _show_profile(config, source, client_id, before)
 
     st.subheader("Contribution de chaque facteur")
     contributions = account_contributions(export, client_id)
@@ -325,7 +479,7 @@ def _show_account(export: LoadedExport | None, config: AppConfig, source: str) -
         )
 
     st.subheader("Historique avant la date de scoring")
-    _show_history(config, source, client_id, export)
+    _show_history(config, source, client_id, before)
 
 
 def _show_performance(config: AppConfig, source: str) -> None:
@@ -443,14 +597,16 @@ def main() -> None:
     _banner(label, is_synthetic, config.business.weekly_capacity_k)
 
     st.title(screen)
-    if export is None and screen != PERFORMANCE_SCREEN:
+    if screen == HOME_SCREEN:
+        _show_home(config, source, is_synthetic)
+    elif screen == PERFORMANCE_SCREEN:
+        _show_performance(config, source)
+    elif export is None:
         _no_export(source, config.interface.missing_export_notice)
     elif screen == LIST_SCREEN:
-        _show_list(export, source, export_dir)
-    elif screen == ACCOUNT_SCREEN:
-        _show_account(export, config, source)
+        _show_list(export, export_dir)
     else:
-        _show_performance(config, source)
+        _show_account(export, config, source)
 
 
 main()

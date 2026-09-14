@@ -211,6 +211,8 @@ Ce lot est délibérément placé avant toute modélisation. Un protocole d'éva
 3. l'application démarre sans erreur sur un export vide
 4. le bandeau de source est visible sur les quatre écrans
 
+**Enrichissements du 2026-09-14, demandés par le propriétaire du projet.** Un écran d'accueil, « Le projet », ouvre l'application : le problème, les chiffres clés lus dans le rapport d'évaluation, la méthode, les limites et les liens vers le code et le cours. La fiche d'un compte donne l'action conseillée sous chaque motif, lue dans `config/feature_mapping.yaml`, et un profil de l'abonné limité à ce qui était connu avant la date de scoring, calculé par `src/churn/interface/accounts.py`. Les critères ci-dessus valent pour les quatre écrans.
+
 ---
 
 ## Lot 8. README et mise en ligne

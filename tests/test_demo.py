@@ -79,13 +79,20 @@ def _run(monkeypatch: pytest.MonkeyPatch) -> AppTest:
     return app
 
 
+def test_the_online_home_shows_the_kkbox_figures(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The first screen a visitor sees states the real KKBox result."""
+    app = _run(monkeypatch)
+    assert not app.exception
+    assert any(element.value.startswith("Source :") for element in app.info)
+    assert "XGBoost" in {metric.label for metric in app.metric}
+
+
 def test_the_online_interface_shows_the_kkbox_performance(monkeypatch: pytest.MonkeyPatch) -> None:
     """The real argument goes online: every ranking measured on KKBox."""
     app = _run(monkeypatch)
+    app.sidebar.radio[0].set_value("Liste du lundi").run()
     assert not app.exception
-    alerts = [element.value for element in app.info]
-    assert any(text.startswith("Source :") for text in alerts)
-    assert any("n'est pas publiée" in text for text in alerts)
+    assert any("n'est pas publiée" in element.value for element in app.info)
 
     app.sidebar.radio[0].set_value("Performance du modèle").run()
     assert not app.exception
@@ -98,10 +105,12 @@ def test_the_online_interface_browses_the_simulated_list(monkeypatch: pytest.Mon
     """The list and the account sheet run on simulated data, under their banner."""
     app = _run(monkeypatch)
     app.sidebar.selectbox[0].set_value("synthetic").run()
+    app.sidebar.radio[0].set_value("Liste du lundi").run()
     assert not app.exception
     assert any("Données simulées" in element.value for element in app.warning)
-    assert len(app.dataframe[0].value) == load_config(project_root=DEMO).business.weekly_capacity_k
+    capacity = load_config(project_root=DEMO).business.weekly_capacity_k
+    assert len(app.dataframe[0].value) == capacity
 
     app.sidebar.radio[0].set_value("Fiche d'un compte").run()
     assert not app.exception
-    assert len(app.metric) == 4
+    assert "Inscription" in {metric.label for metric in app.metric}
